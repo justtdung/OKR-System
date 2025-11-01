@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ----- Force-bold cho Sidebar (áp dụng cho layout hiện tại: Sidebar là phần tử con đầu của .min-h-screen.bg container) ----- */
+.min-h-screen.bg-gray-50.flex > *:first-child,
+.min-h-screen.bg-gray-50.flex > *:first-child * {
+  font-weight: 700 !important;
+  color: color-mix(inherit, gray, 50%) !important;
+}
+
+/* Tăng "đậm" cho icon SVG trong sidebar */
+.min-h-screen.bg-gray-50.flex > *:first-child svg {
+  stroke-width: 1.8 !important;
+  fill-opacity: 1 !important;
+  color: color-mix(inherit, gray, 50%) !important;
+}

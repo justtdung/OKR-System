@@ -1,0 +1,331 @@
+.todaylist-container {
+  max-width: 100rem;
+  margin: 0 auto;
+}
+
+.todaylist-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid #f3f4f6;
+  padding: 1.5rem;
+}
+
+/* Header */
+.todaylist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.todaylist-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.todaylist-date {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  min-width: 140px;
+}
+
+/* Input Row */
+.todaylist-input-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.todaylist-input, .todaylist-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  flex: 1;
+}
+
+/* Controls row (boxed search + filters + add button) */
+.todaylist-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+/* Controls row layout */
+.controls-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  box-shadow: none;
+  min-height: 44px;
+}
+
+/* phần phải chứa date + dept (nhỏ) + add */
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* date & dept nhỏ ở cạnh phải */
+.todaylist-date {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  min-width: 140px;
+}
+
+.todaylist-dept-filter--small {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  min-width: 160px;
+}
+
+/* input tìm kiếm nằm trong khung */
+.todaylist-search {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  background: transparent;
+}
+
+/* priority select nhỏ trong khung */
+.todaylist-priority-filter {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  min-width: 160px;
+  cursor: pointer;
+}
+
+/* điều chỉnh date và dept để hài hòa trong khung */
+.todaylist-dept-filter {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  min-width: 180px;
+}
+
+/* vị trí nút Thêm nằm bên phải, cách khung một chút */
+.controls-add {
+  margin-left: 12px;
+}
+
+.todaylist-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #2563eb;
+  color: white;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+}
+.todaylist-btn-add:hover {
+  background: #1d4ed8;
+}
+
+/* Status Summary */
+.todaylist-status-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.todaylist-status-box {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  text-align: center;
+}
+
+.todaylist-status-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #374151;
+}
+
+.todaylist-status-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+/* Task list */
+.todaylist-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.todaylist-task-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+  cursor: pointer; /* cho biết có thể click */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.todaylist-task-item:hover,
+.todaylist-task-item--hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  z-index: 5;
+}
+
+.todaylist-task-content {
+  flex: 1;
+}
+
+.todaylist-task-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.todaylist-task-text {
+  font-size: 0.875rem;
+  font-weight: 700; /* in đậm tiêu đề task trong phần xem nhanh */
+  color: #1f2937;
+}
+
+.todaylist-priority {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.todaylist-priority.cao {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.todaylist-priority.trung-bình {
+  background: #fef3c7;
+  color: #b45309;
+}
+.todaylist-priority.thấp {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.todaylist-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.todaylist-task-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.todaylist-task-status {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+}
+
+.todaylist-task-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #ecfdf5;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: #065f46;
+}
+
+/* Delete button */
+.todaylist-btn-delete {
+  padding: 0.5rem;
+  color: #9ca3af;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.todaylist-btn-delete:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* Task item: badge deadline + dept styling giống ảnh */
+.todaylist-deadline-badge {
+  background: #fff4e6; /* nền vàng nhạt */
+  color: #92400e; /* chữ cam đậm */
+  border: 1px solid rgba(245,158,11,0.15);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.todaylist-dept-badge {
+  background: #eef2ff; /* nền tím nhạt */
+  color: #4c1d95; /* chữ tím đậm */
+  border: 1px solid rgba(99,102,241,0.12);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+}
+.todaylist-creator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #374151;
+  font-weight: 700;
+}
+
+.todaylist-creator img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+.ct-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ct-header-actions{display:flex;align-items:center;gap:8px}
+.ct-creator-info{display:flex;align-items:center;gap:8px;margin-right:8px}
+.ct-creator{display:flex;align-items:center;gap:6px}
+.ct-avatar{width:28px;height:28px;border-radius:50%;overflow:hidden;position:relative}
+.ct-avatar img{width:100%;height:100%;object-fit:cover}
+.ct-avatar-fallback{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;border:1px solid #e5e7eb;background:#f8fafc}
+.ct-avatar-initials{position:absolute;bottom:-6px;right:-4px;font-size:9px;opacity:.6}
+.ct-edit-toggle-btn{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer}

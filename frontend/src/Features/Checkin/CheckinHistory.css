@@ -1,0 +1,347 @@
+.history-container {
+  padding: 1rem 0;
+}
+
+.history-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 1rem;
+}
+
+.history-filters .search-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  min-width: 220px;
+  font-size: 14px;
+  background: white;
+}
+
+.history-filters .search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.history-filters .quarter-select,
+.history-filters .owner-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.history-filters .quarter-select:hover,
+.history-filters .owner-select:hover {
+  border-color: #3b82f6;
+}
+
+.history-filters .owner-select {
+  min-width: 200px;
+}
+
+.history-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.history-list {
+  padding: 0 1rem;
+}
+
+.history-item {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.history-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.child-history-item {
+  background-color: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  margin-top: 8px;
+}
+
+.child-history-item:hover {
+  background-color: #e0f2fe;
+  border-left-color: #2563eb;
+}
+
+.child-history-item .okr-title {
+  font-size: 0.95em;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.history-header {
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  background: linear-gradient(to right, #fafafa 0%, #ffffff 100%);
+}
+
+.history-header:hover {
+  background: linear-gradient(to right, #f0f9ff 0%, #ffffff 100%);
+}
+
+.history-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.history-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expand-parent-btn {
+  background: #eff6ff;
+  border: 2px solid #3b82f6;
+  cursor: pointer;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+
+.expand-parent-btn:hover {
+  color: white;
+  background: #3b82f6;
+  transform: scale(1.1);
+}
+
+.okr-info-compact {
+  flex: 1;
+}
+
+.okr-title {
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.okr-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.okr-type {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.okr-cycle {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.okr-owner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.history-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #dbeafe;
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 2px solid #3b82f6;
+}
+
+.history-content {
+  padding: 16px;
+  border-top: 2px solid #e5e7eb;
+  background: #fafafa;
+}
+
+.history-loading,
+.history-empty {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.history-timeline {
+  position: relative;
+  padding-left: 32px;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 16px 0;
+  display: flex;
+  gap: 16px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -24px;
+  top: 24px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 3px solid white;
+  box-shadow: 0 0 0 3px #3b82f6;
+  z-index: 10;
+}
+
+.timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 38px;
+  width: 3px;
+  height: calc(100% - 16px);
+  background: linear-gradient(to bottom, #3b82f6 0%, #93c5fd 100%);
+  border-radius: 2px;
+}
+
+.timeline-content {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.timeline-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  background: #f3f4f6;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-row {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  padding: 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.timeline-label {
+  font-weight: 700;
+  color: #374151;
+  min-width: 140px;
+}
+
+.timeline-value {
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  font-weight: 500;
+}
+
+.user-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+}
+
+.progress-mini {
+  flex: 1;
+  max-width: 140px;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+}
+
+.progress-fill-mini {
+  height: 100%;
+  background: linear-gradient(to right, #3b82f6, #60a5fa);
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.progress-text-mini {
+  font-weight: 700;
+  color: #3b82f6;
+  font-size: 14px;
+}
+
+.confidence-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

@@ -1,0 +1,612 @@
+/* Container */
+.okrs-container {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid #f3f4f6;
+}
+
+/* Summary Grid */
+.okrs-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Header */
+.okrs-header {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.okrs-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.okrs-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.okrs-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.okrs-btn-filter,
+.okrs-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.okrs-btn-filter {
+  background: #f3f4f6;
+  color: #374151;
+}
+.okrs-btn-filter:hover {
+  background: #e5e7eb;
+}
+
+.okrs-btn-add {
+  background: #2563eb;
+  color: white;
+}
+.okrs-btn-add:hover {
+  background: #1d4ed8;
+}
+
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Table Layout */
+.okrs-table-header {
+  display: grid;
+  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.okrs-row {
+  display: grid;
+  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  background: white;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.okrs-row:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  z-index: 5;
+}
+
+/* Objective Column */
+.okr-objective {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.okr-title {
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.4;
+  font-size: 0.875rem;
+}
+
+.okr-type {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Owner Column */
+.okr-owner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.okr-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.okr-owner-name {
+  font-size: 0.85rem;
+  color: #374151;
+  font-weight: 700;
+}
+
+/* Key Results Column */
+.okr-krs {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #eef2ff;
+  color: #4c1d95;
+  border: 1px solid rgba(99,102,241,0.12);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Progress Column */
+.okr-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.okr-progress-bar {
+  flex: 1;
+  min-width: 60px;
+  max-width: 100px;
+}
+
+.okr-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.okr-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress-green {
+  background: #10b981;
+}
+
+.progress-yellow {
+  background: #f59e0b;
+}
+
+.progress-orange {
+  background: #f97316;
+}
+
+.progress-red {
+  background: #ef4444;
+}
+
+.okr-progress-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #374151;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* Change Column */
+.okr-change {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Loading and Empty States */
+.okrs-loading,
+.okrs-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Summary card (giao diện giống ảnh gốc) */
+.summary-card {
+  background: #ffffff;
+  border: 1px solid rgba(229,231,235,1); /* #e5e7eb */
+  padding: 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  cursor: pointer;
+  min-height: 100px;
+  justify-content: space-between;
+}
+
+.summary-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 20px rgba(15,23,42,0.08);
+  border-color: rgba(37,99,235,0.12);
+}
+
+.summary-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.06);
+  font-size: 1.05rem;
+}
+
+/* utility bg classes used by JS (provide safe defaults) */
+.bg-blue-500 { background: #2563eb !important; }
+.bg-green-500 { background: #10b981 !important; }
+.bg-purple-500 { background: #7c3aed !important; }
+.bg-gray-500 { background: #6b7280 !important; }
+
+.summary-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.summary-title {
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.summary-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.summary-progress-track {
+  flex: 1;
+  height: 8px;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.summary-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(34,197,94,1), rgba(34,139,230,1));
+}
+
+/* progress color mapping via existing helper classes */
+.progress-green { background: #10b981 !important; }
+.progress-yellow { background: #f59e0b !important; }
+.progress-orange { background: #f97316 !important; }
+.progress-red { background: #ef4444 !important; }
+
+/* selected state */
+.summary-selected {
+  border-color: rgba(37,99,235,0.18);
+  box-shadow: 0 12px 30px rgba(37,99,235,0.08);
+  transform: translateY(-6px);
+}
+
+/* Selected header card (hiển thị khi chọn thẻ) */
+.selected-header-card {
+  background: #ffffff;
+  border: 1px solid rgba(228,231,235,1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+}
+
+.selected-header-card .title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.selected-header-card .meta {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .okrs-table-header,
+  .okrs-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1.5fr 0.8fr;
+    gap: 0.5rem;
+  }
+  
+  .okr-title {
+    font-size: 0.8rem;
+  }
+  
+  .okr-owner-name {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .okrs-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .summary-card { min-height: 88px; padding: 0.75rem; }
+}
+
+/* =========================
+   OKR DETAIL MODAL STYLES
+   ========================= */
+
+.okr-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.okr-detail-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.okr-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.okr-detail-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.okr-detail-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.okr-detail-close-btn:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+.okr-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.okr-detail-section {
+  margin-bottom: 2rem;
+}
+
+.okr-detail-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.okr-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.okr-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.okr-detail-item label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.okr-detail-item span {
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+.okr-creator-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.okr-creator-info .okr-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.okr-objective-text {
+  font-size: 1rem;
+  color: #1f2937;
+  line-height: 1.6;
+  margin: 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border-left: 4px solid #2563eb;
+}
+
+.okr-key-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.okr-key-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border-left: 4px solid #10b981;
+}
+
+.okr-kr-number {
+  font-weight: 600;
+  color: #10b981;
+  min-width: 1.5rem;
+}
+
+.okr-kr-text {
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.okr-progress-detail {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.okr-progress-detail .okr-progress-track {
+  flex: 1;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.okr-progress-percentage {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.expand-btn-okr {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s;
+  border-radius: 4px;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.expand-btn-okr:hover {
+  color: #1f2937;
+  background-color: #f3f4f6;
+}
+
+/* Make chevron icons bigger */
+.expand-btn-okr svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.okrs-row.child-row {
+  background-color: #f9fafb;
+  border-left: 4px solid #3b82f6;
+}
+
+.okrs-row.child-row:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-4px);
+}
+
+.okrs-row.child-row .okr-title {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.okrs-row.child-row .okr-type {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .okr-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .okr-detail-modal {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+}

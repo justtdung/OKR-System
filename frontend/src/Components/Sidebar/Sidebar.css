@@ -1,0 +1,164 @@
+/* ===== Sidebar layout ===== */
+.sidebar {
+  width: 220px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Logo */
+.sidebar-logo {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar-logo-img {
+  height: auto;
+  width: auto;
+}
+
+/* Menu */
+.sidebar-menu {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  color: #4b5563;
+  font-weight: 500;
+  transition: 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.sidebar-btn:hover {
+  background-color: #f9fafb;
+}
+
+.sidebar-btn-active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border-left: 4px solid #2563eb;
+}
+
+/* Footer */
+.sidebar-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.sidebar-avatar {
+  width: 40px;
+  height: 40px;
+  background: #e5e7eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-user-info {
+  flex: 1;
+}
+
+.username {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.role {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Logout button */
+.sidebar-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #dc2626;
+  padding: 8px 0;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+.sidebar-logout:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* ===== UserForm Overlay Popup ===== */
+.userform-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Quan trọng: đặt cao để nằm trên Dashboard */
+}
+
+.userform-popup {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.3s ease;
+}
+
+.popup-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: 0.2s;
+}
+
+.popup-close-btn:hover {
+  color: #111827;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

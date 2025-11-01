@@ -1,0 +1,170 @@
+.ct-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.ct-modal {
+  position: relative;
+  width: 1000px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+
+  /* NEW: giữ modal cố định chiều cao, cho phép nội dung cuộn */
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* NEW: phần form cuộn riêng, tránh làm sticky bị vô hiệu */
+.ct-form {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ct-title {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  color: #111827;
+  font-weight: 600;
+  position: relative;
+}
+
+.tdl-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tdl-close-btn:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+.tdl-close-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+}
+
+.ct-form label {
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.ct-form input[type="text"],
+.ct-form input[type="date"],
+.ct-form select,
+.ct-form textarea,
+.ct-form input[type="file"] {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ct-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ct-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.ct-attachments {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ct-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.ct-attach-name {
+  font-size: 0.85rem;
+  color: #374151;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ct-attach-remove {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* ✅ Sticky footer luôn hiển thị nút Lưu/Hủy */
+.ct-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-top: 1px solid #f3f4f6;
+  z-index: 10;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-save {
+background-color: #2563eb !important;
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.3);
+}
