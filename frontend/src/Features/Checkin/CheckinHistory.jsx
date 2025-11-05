@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, ChevronDown, ChevronRight, Plus, Minus } from 'lucide-react';
+import CheckinChart from './CheckinChart';
 import './CheckinHistory.css';
 
 // Helper functions moved outside component to avoid eslint warnings
@@ -283,83 +284,89 @@ const CheckinHistory = ({ okrs, allUsers }) => {
               ) : history.length === 0 ? (
                 <div className="history-empty">Chưa có lịch sử check-in</div>
               ) : (
-                <div className="history-timeline">
-                  {history.map((item, index) => (
-                    <div key={item.checkin_id} className="timeline-item">
-                      <div className="timeline-marker" />
-                      <div className="timeline-content">
-                        <div className="timeline-header">
-                          <div className="timeline-date">
-                            {new Date(item.checkin_date).toLocaleDateString('vi-VN')}
-                          </div>
-                          {getStatusBadge(item.status)}
-                        </div>
-
-                        <div className="timeline-body">
-                          <div className="timeline-row">
-                            <div className="timeline-label">Người check-in:</div>
-                            <div className="timeline-value">
-                              {item.user_avatar_url ? (
-                                <img src={item.user_avatar_url} alt="" className="user-avatar-small" />
-                              ) : (
-                                <User size={16} />
-                              )}
-                              {item.user_name}
+                <>
+                  {/* Biểu đồ lịch sử */}
+                  <CheckinChart history={history} okrObjective={okr.objective} />
+                  
+                  {/* Timeline chi tiết */}
+                  <div className="history-timeline">
+                    {history.map((item, index) => (
+                      <div key={item.checkin_id} className="timeline-item">
+                        <div className="timeline-marker" />
+                        <div className="timeline-content">
+                          <div className="timeline-header">
+                            <div className="timeline-date">
+                              {new Date(item.checkin_date).toLocaleDateString('vi-VN')}
                             </div>
+                            {getStatusBadge(item.status)}
                           </div>
 
-                          <div className="timeline-row">
-                            <div className="timeline-label">Tiến độ:</div>
-                            <div className="timeline-value">
-                              <div className="progress-mini">
-                                <div 
-                                  className="progress-fill-mini" 
-                                  style={{ width: `${item.progress_percent}%` }}
-                                />
+                          <div className="timeline-body">
+                            <div className="timeline-row">
+                              <div className="timeline-label">Người check-in:</div>
+                              <div className="timeline-value">
+                                {item.user_avatar_url ? (
+                                  <img src={item.user_avatar_url} alt="" className="user-avatar-small" />
+                                ) : (
+                                  <User size={16} />
+                                )}
+                                {item.user_name}
                               </div>
-                              <span className="progress-text-mini">{item.progress_percent}%</span>
                             </div>
+
+                            <div className="timeline-row">
+                              <div className="timeline-label">Tiến độ:</div>
+                              <div className="timeline-value">
+                                <div className="progress-mini">
+                                  <div 
+                                    className="progress-fill-mini" 
+                                    style={{ width: `${item.progress_percent}%` }}
+                                  />
+                                </div>
+                                <span className="progress-text-mini">{item.progress_percent}%</span>
+                              </div>
+                            </div>
+
+                            <div className="timeline-row">
+                              <div className="timeline-label">Mức độ tự tin:</div>
+                              <div className="timeline-value">
+                                {getConfidenceBadge(item.confidence_text)}
+                              </div>
+                            </div>
+
+                            {item.work_summary && (
+                              <div className="timeline-row">
+                                <div className="timeline-label">Tóm tắt:</div>
+                                <div className="timeline-value">{item.work_summary}</div>
+                              </div>
+                            )}
+
+                            {item.slow_tasks && (
+                              <div className="timeline-row">
+                                <div className="timeline-label">Công việc chậm:</div>
+                                <div className="timeline-value">{item.slow_tasks}</div>
+                              </div>
+                            )}
+
+                            {item.obstacles && (
+                              <div className="timeline-row">
+                                <div className="timeline-label">Trở ngại:</div>
+                                <div className="timeline-value">{item.obstacles}</div>
+                              </div>
+                            )}
+
+                            {item.solutions && (
+                              <div className="timeline-row">
+                                <div className="timeline-label">Giải pháp:</div>
+                                <div className="timeline-value">{item.solutions}</div>
+                              </div>
+                            )}
                           </div>
-
-                          <div className="timeline-row">
-                            <div className="timeline-label">Mức độ tự tin:</div>
-                            <div className="timeline-value">
-                              {getConfidenceBadge(item.confidence_text)}
-                            </div>
-                          </div>
-
-                          {item.work_summary && (
-                            <div className="timeline-row">
-                              <div className="timeline-label">Tóm tắt:</div>
-                              <div className="timeline-value">{item.work_summary}</div>
-                            </div>
-                          )}
-
-                          {item.slow_tasks && (
-                            <div className="timeline-row">
-                              <div className="timeline-label">Công việc chậm:</div>
-                              <div className="timeline-value">{item.slow_tasks}</div>
-                            </div>
-                          )}
-
-                          {item.obstacles && (
-                            <div className="timeline-row">
-                              <div className="timeline-label">Trở ngại:</div>
-                              <div className="timeline-value">{item.obstacles}</div>
-                            </div>
-                          )}
-
-                          {item.solutions && (
-                            <div className="timeline-row">
-                              <div className="timeline-label">Giải pháp:</div>
-                              <div className="timeline-value">{item.solutions}</div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}

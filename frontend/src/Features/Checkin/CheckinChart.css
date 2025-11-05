@@ -1,0 +1,70 @@
+.checkin-chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.chart-header {
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.chart-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
+}
+
+.chart-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.chart-tooltip {
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tooltip-progress,
+.tooltip-confidence,
+.tooltip-user {
+  font-size: 12px;
+  color: #374151;
+  margin: 4px 0;
+}
+
+.tooltip-progress strong,
+.tooltip-confidence strong {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.tooltip-user {
+  color: #6b7280;
+  font-style: italic;
+}

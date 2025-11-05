@@ -1711,6 +1711,244 @@ app.get("/api/checkin-reviews/okr/:okr_id", (req, res) => {
   });
 });
 
+// ============= CFR APIs =============
+
+// API lấy danh sách Conversations
+app.get("/api/conversations", (req, res) => {
+  const sql = `
+    SELECT 
+      c.*,
+      m.fullname AS manager_name,
+      m.avatar AS manager_avatar,
+      p.fullname AS participant_name,
+      p.avatar AS participant_avatar
+    FROM conversation c
+    LEFT JOIN users m ON c.manager_id = m.user_id
+    LEFT JOIN users p ON c.participant_id = p.user_id
+    ORDER BY c.conversation_date DESC
+    LIMIT 100
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ Get conversations error:", err);
+      return res.status(500).json({ message: "Failed to fetch conversations", error: err.message });
+    }
+
+    console.log("✅ Conversations fetched:", result.length, "rows");
+    console.log("Sample data:", result[0]); // Debug: xem dữ liệu thực tế
+
+    const conversations = (result || []).map(conv => ({
+      ...conv,
+      manager_avatar_url: conv.manager_avatar ? `http://localhost:${PORT}/uploads/${conv.manager_avatar}` : null,
+      participant_avatar_url: conv.participant_avatar ? `http://localhost:${PORT}/uploads/${conv.participant_avatar}` : null
+    }));
+
+    res.json(conversations);
+  });
+});
+
+// API tạo Conversation
+app.post("/api/conversations", (req, res) => {
+  console.log("=== DEBUG CREATE CONVERSATION ===");
+  console.log("Request body:", req.body);
+
+  const { manager_id, participant_id, topic, content, action, trust_score } = req.body;
+
+  if (!manager_id || !participant_id || !topic || !content) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  // Tính conversation_week
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+
+  const sql = `
+    INSERT INTO conversation (manager_id, participant_id, topic, content, action, trust_score, conversation_week, conversation_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+  `;
+
+  const params = [
+    parseInt(manager_id),
+    parseInt(participant_id),
+    topic,
+    content,
+    action || null,
+    trust_score || 5,
+    weekNumber
+  ];
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("❌ Create conversation error:", err);
+      return res.status(500).json({ message: "Failed to create conversation: " + err.message });
+    }
+
+    console.log("✅ Conversation created with ID:", result.insertId);
+    res.json({ message: "Conversation created successfully", conversation_id: result.insertId });
+  });
+});
+
+// API lấy danh sách Feedback
+app.get("/api/feedback", (req, res) => {
+  const sql = `
+    SELECT 
+      f.*,
+      s.fullname AS sender_name,
+      s.avatar AS sender_avatar,
+      r.fullname AS receiver_name,
+      r.avatar AS receiver_avatar
+    FROM feedback f
+    LEFT JOIN users s ON f.sender_id = s.user_id
+    LEFT JOIN users r ON f.receiver_id = r.user_id
+    ORDER BY f.feedback_date DESC
+    LIMIT 100
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ Get feedback error:", err);
+      return res.status(500).json({ message: "Failed to fetch feedback", error: err.message });
+    }
+
+    console.log("✅ Feedbacks fetched:", result.length, "rows");
+
+    const feedbacks = (result || []).map(fb => ({
+      ...fb,
+      sender_avatar_url: fb.sender_avatar ? `http://localhost:${PORT}/uploads/${fb.sender_avatar}` : null,
+      receiver_avatar_url: fb.receiver_avatar ? `http://localhost:${PORT}/uploads/${fb.receiver_avatar}` : null
+    }));
+
+    res.json(feedbacks);
+  });
+});
+
+// API tạo Feedback
+app.post("/api/feedback", upload.single("evidence_file"), (req, res) => {
+  console.log("=== DEBUG CREATE FEEDBACK ===");
+  console.log("Request body:", req.body);
+  console.log("Request file:", req.file);
+
+  const { sender_id, receiver_id, type, content, level_impact } = req.body;
+
+  if (!sender_id || !receiver_id || !type || !level_impact) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  // Lấy đường dẫn file evidence nếu có upload
+  const evidenceFile = req.file ? req.file.filename : null;
+
+  // Tính feedback_week
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+
+  const sql = `
+    INSERT INTO feedback (sender_id, receiver_id, type, content, evidence, level_impact, feedback_week, feedback_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+  `;
+
+  const params = [
+    parseInt(sender_id),
+    parseInt(receiver_id),
+    type,
+    content || null,
+    evidenceFile,
+    level_impact,
+    weekNumber
+  ];
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("❌ Create feedback error:", err);
+      return res.status(500).json({ message: "Failed to create feedback: " + err.message });
+    }
+
+    console.log("✅ Feedback created with ID:", result.insertId);
+    res.json({ message: "Feedback created successfully", feedback_id: result.insertId });
+  });
+});
+
+// API tạo Recognition
+app.post("/api/recognitions", upload.single("evidence_file"), (req, res) => {
+  console.log("=== DEBUG CREATE RECOGNITION ===");
+  console.log("Request body:", req.body);
+  console.log("Request file:", req.file);
+
+  const { sender_id, receiver_id, reason, bonus_points } = req.body;
+
+  if (!sender_id || !receiver_id || !reason) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  // Lấy đường dẫn file evidence nếu có upload
+  const evidenceFile = req.file ? req.file.filename : null;
+
+  // Tính recognition_week
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+
+  const sql = `
+    INSERT INTO recognition (sender_id, receiver_id, reason, evidence, bonus_points, recognition_week, recognition_date)
+    VALUES (?, ?, ?, ?, ?, ?, NOW())
+  `;
+
+  const params = [
+    parseInt(sender_id),
+    parseInt(receiver_id),
+    reason,
+    evidenceFile,
+    parseInt(bonus_points) || 0,
+    weekNumber
+  ];
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("❌ Create recognition error:", err);
+      return res.status(500).json({ message: "Failed to create recognition: " + err.message });
+    }
+
+    console.log("✅ Recognition created with ID:", result.insertId);
+    res.json({ message: "Recognition created successfully", recognition_id: result.insertId });
+  });
+});
+
+// API lấy danh sách Recognition
+app.get("/api/recognitions", (req, res) => {
+  const sql = `
+    SELECT 
+      r.*,
+      s.fullname AS sender_name,
+      s.avatar AS sender_avatar,
+      rec.fullname AS receiver_name,
+      rec.avatar AS receiver_avatar
+    FROM recognition r
+    LEFT JOIN users s ON r.sender_id = s.user_id
+    LEFT JOIN users rec ON r.receiver_id = rec.user_id
+    ORDER BY r.recognition_date DESC
+    LIMIT 100
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ Get recognition error:", err);
+      return res.status(500).json({ message: "Failed to fetch recognition", error: err.message });
+    }
+
+    console.log("✅ Recognitions fetched:", result.length, "rows");
+
+    const recognitions = (result || []).map(rec => ({
+      ...rec,
+      sender_avatar_url: rec.sender_avatar ? `http://localhost:${PORT}/uploads/${rec.sender_avatar}` : null,
+      receiver_avatar_url: rec.receiver_avatar ? `http://localhost:${PORT}/uploads/${rec.receiver_avatar}` : null
+    }));
+
+    res.json(recognitions);
+  });
+});
+
 // Thêm error handler cuối cùng để trả JSON cho mọi lỗi (tránh HTML stack trace)
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err && (err.stack || err));
