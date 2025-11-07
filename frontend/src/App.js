@@ -13,6 +13,7 @@ import OKRsView from './Features/OKRs/OKRsView';
 import TodayListView from './Features/TodayList/TodayListView';
 import Checkin from './Features/Checkin/Checkin';
 import CFRs from './Features/CFRs/CFRs';
+import Report from './Features/Report/Report';
 
 // 🔹 Config
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -263,6 +264,7 @@ export default function App() {
                 <Route path="/checkin" element={<Checkin />} />
                 <Route path="/check-in" element={<Checkin />} />
                 <Route path="/cfrs" element={<CFRs />} />
+                <Route path="/report" element={<Report />} />
                 <Route path="/todaylist" element={
                   <TodayListView
                     tasks={tasks}

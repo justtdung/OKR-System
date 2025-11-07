@@ -77,7 +77,7 @@ const OKRsView = ({ onOpenModal }) => {
       // Đếm TẤT CẢ OKRs (bao gồm cả child) theo type
       const items = allOkrs.filter(o => (o.type || '').trim() === t.key);
       const count = items.length;
-      const avgProgress = count === 0 ? 0 : Math.round(items.reduce((s, it) => s + (Number(it.progress) || 0), 0) / count);
+      const avgProgress = count === 0 ? 0 : Number((items.reduce((s, it) => s + (Number(it.progress) || 0), 0) / count).toFixed(2));
       return {
         typeKey: t.key,
         title: t.title,
@@ -89,7 +89,7 @@ const OKRsView = ({ onOpenModal }) => {
 
     // Also include 'Tất cả' card - đếm TẤT CẢ
     const totalCount = allOkrs.length;
-    const totalAvg = totalCount === 0 ? 0 : Math.round(allOkrs.reduce((s, it) => s + (Number(it.progress) || 0), 0) / totalCount);
+    const totalAvg = totalCount === 0 ? 0 : Number((allOkrs.reduce((s, it) => s + (Number(it.progress) || 0), 0) / totalCount).toFixed(2));
     setSummaryCards([{ typeKey: '', title: 'Tất cả OKRs', count: totalCount, progress: totalAvg, color: 'gray' }, ...cards]);
   }, [allOkrs]); // Đổi dependency từ okrsList sang allOkrs
 
@@ -122,7 +122,20 @@ const OKRsView = ({ onOpenModal }) => {
 
     // Filter by selected summary card type
     if (selectedSummaryType !== null && selectedSummaryType !== '') {
-      filtered = filtered.filter(okr => (okr.type || '').trim() === selectedSummaryType);
+      // Nếu chọn "Cá Nhân", hiển thị parent OKRs có child "Cá Nhân"
+      if (selectedSummaryType === 'Cá Nhân') {
+        filtered = filtered.filter(okr => {
+          // Show if parent itself is "Cá Nhân"
+          if ((okr.type || '').trim() === selectedSummaryType) {
+            return true;
+          }
+          // Show parent if it has "Cá Nhân" children
+          const children = getChildOkrsHelper(allOkrs, okr.id);
+          return children.some(child => (child.type || '').trim() === 'Cá Nhân');
+        });
+      } else {
+        filtered = filtered.filter(okr => (okr.type || '').trim() === selectedSummaryType);
+      }
     }
 
     setFilteredOkrsList(filtered);
@@ -158,6 +171,37 @@ const OKRsView = ({ onOpenModal }) => {
       setExpandedOkrs(parentIdsToExpand);
     }
   }, [selectedOwner, allOkrs]);
+
+  // NEW: Auto-expand parents when "Cá Nhân" card is selected
+  useEffect(() => {
+    if (selectedSummaryType === 'Cá Nhân') {
+      // Tìm tất cả OKR "Cá Nhân" có parent
+      const personalOkrs = allOkrs.filter(o => 
+        (o.type || '').trim() === 'Cá Nhân' && 
+        o.o_relevant
+      );
+
+      if (personalOkrs.length === 0) return;
+
+      // Lấy danh sách parent IDs cần expand
+      const parentIdsToExpand = new Set();
+
+      personalOkrs.forEach(okr => {
+        const parentId = parseInt(okr.o_relevant);
+        if (parentId) {
+          parentIdsToExpand.add(parentId);
+        }
+      });
+
+      // Expand các parent
+      if (parentIdsToExpand.size > 0) {
+        setExpandedOkrs(parentIdsToExpand);
+      }
+    } else if (selectedSummaryType === '') {
+      // Reset expansion khi về "Tất cả"
+      setExpandedOkrs(new Set());
+    }
+  }, [selectedSummaryType, allOkrs]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -697,7 +741,7 @@ const OKRsView = ({ onOpenModal }) => {
                             ></div>
                           </div>
                         </div>
-                        <span className="okr-progress-text">{okr.progress}%</span>
+                        <span className="okr-progress-text">{Number(okr.progress).toFixed(2)}%</span>
                       </div>
                     </div>
 
@@ -758,7 +802,7 @@ const OKRsView = ({ onOpenModal }) => {
                               ></div>
                             </div>
                           </div>
-                          <span className="okr-progress-text">{childOkr.progress}%</span>
+                          <span className="okr-progress-text">{Number(childOkr.progress).toFixed(2)}%</span>
                         </div>
                       </div>
 

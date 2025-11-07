@@ -848,6 +848,79 @@ app.post("/api/okrs", (req, res) => {
   }
 });
 
+// ============= STATISTICS ROUTE - PHẢI ĐẶT TRƯỚC TẤT CẢ ROUTE CÓ :id =============
+// API lấy thống kê OKRs theo phòng ban - PHẢI ĐẶT TRƯỚC /api/okrs/:id VÀ /api/okrs/parent-okrs
+app.get("/api/okrs/statistics", (req, res) => {
+  console.log("=== DEBUG OKR STATISTICS API ===");
+  console.log("Request query:", req.query);
+  
+  const startDate = req.query.start_date || '2025-10-01';
+  const endDate = req.query.end_date || '2025-11-30';
+
+  console.log("Using date range:", startDate, "to", endDate);
+
+  const sql = `
+    SELECT
+      d.department_id,
+      d.department_name,
+      COUNT(DISTINCT o.okr_id) AS total_okrs,
+      COUNT(DISTINCT CASE WHEN cf.okr_id IS NULL THEN o.okr_id END) AS not_checked_in,
+      COUNT(DISTINCT CASE WHEN cf.status = 'draft' THEN o.okr_id END) AS draft,
+      COUNT(DISTINCT CASE WHEN cf.status = 'checked' THEN o.okr_id END) AS completed,
+      ROUND(AVG(CASE WHEN cf.status='checked' THEN cf.progress_percent END),2) AS avg_progress
+    FROM departments d
+    INNER JOIN users u ON u.department_id = d.department_id
+    INNER JOIN okrs o ON o.user_id = u.user_id
+    LEFT JOIN checkin_form cf ON cf.okr_id = o.okr_id
+    WHERE cf.checkin_date BETWEEN '${startDate}' AND '${endDate}'
+    GROUP BY d.department_id, d.department_name
+    ORDER BY d.department_name ASC
+  `;
+
+  console.log("Executing SQL:", sql);
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ SQL Error:", err);
+      return res.status(500).json({ 
+        message: "Database error",
+        error: err.message,
+        sql: sql 
+      });
+    }
+
+    console.log("✅ Query OK! Rows:", result ? result.length : 0);
+    
+    if (!result || result.length === 0) {
+      console.log("⚠️ No data - returning empty array");
+      return res.json({
+        departmentTable: [],
+        dateRange: { start: startDate, end: endDate },
+        message: "Không có dữ liệu. Vui lòng tạo OKR trước!"
+      });
+    }
+    
+    console.log("First row:", result[0]);
+    
+    const departmentTable = result.map(row => ({
+      department_id: row.department_id,
+      department_name: row.department_name || 'N/A',
+      total_okrs: parseInt(row.total_okrs) || 0,
+      not_checked_in: parseInt(row.not_checked_in) || 0,
+      draft: parseInt(row.draft) || 0,
+      completed: parseInt(row.completed) || 0,
+      avg_progress: parseFloat(row.avg_progress) || 0
+    }));
+
+    console.log("Returning data:", departmentTable);
+
+    res.json({
+      departmentTable: departmentTable,
+      dateRange: { start: startDate, end: endDate }
+    });
+  });
+});
+
 // API lấy danh sách OKRs (với thông tin check-in mới nhất)
 app.get("/api/okrs", (req, res) => {
   const sql = `
@@ -982,7 +1055,7 @@ app.get("/api/okrs", (req, res) => {
   });
 });
 
-// API lấy danh sách OKR Nhóm từ superior - PHẢI ĐẶT TRƯỚC /api/okrs/:id
+// API lấy danh sách OKR Nhóm từ superior - ĐẶT SAU statistics
 app.get("/api/okrs/parent-okrs", (req, res) => {
   console.log("=== DEBUG PARENT OKRs API ===");
   
@@ -1052,7 +1125,7 @@ app.get("/api/okrs/parent-okrs", (req, res) => {
   });
 });
 
-// API lấy chi tiết một OKR - ĐẶT SAU parent-okrs
+// API lấy chi tiết một OKR - ĐẶT CUỐI CÙNG
 app.get("/api/okrs/:id", (req, res) => {
   const okrId = parseInt(req.params.id);
   if (!okrId) {
@@ -1948,6 +2021,7 @@ app.get("/api/recognitions", (req, res) => {
     res.json(recognitions);
   });
 });
+
 
 // Thêm error handler cuối cùng để trả JSON cho mọi lỗi (tránh HTML stack trace)
 app.use((err, req, res, next) => {
