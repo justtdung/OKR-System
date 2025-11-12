@@ -848,7 +848,6 @@ app.post("/api/okrs", (req, res) => {
   }
 });
 
-// ============= STATISTICS ROUTE - PHẢI ĐẶT TRƯỚC TẤT CẢ ROUTE CÓ :id =============
 // API lấy thống kê OKRs theo phòng ban - PHẢI ĐẶT TRƯỚC /api/okrs/:id VÀ /api/okrs/parent-okrs
 app.get("/api/okrs/statistics", (req, res) => {
   console.log("=== DEBUG OKR STATISTICS API ===");
@@ -859,6 +858,7 @@ app.get("/api/okrs/statistics", (req, res) => {
 
   console.log("Using date range:", startDate, "to", endDate);
 
+  // Query chính - lấy thống kê cơ bản
   const sql = `
     SELECT
       d.department_id,
@@ -872,14 +872,133 @@ app.get("/api/okrs/statistics", (req, res) => {
     INNER JOIN users u ON u.department_id = d.department_id
     INNER JOIN okrs o ON o.user_id = u.user_id
     LEFT JOIN checkin_form cf ON cf.okr_id = o.okr_id
-    WHERE cf.checkin_date BETWEEN '${startDate}' AND '${endDate}'
+    WHERE cf.checkin_date BETWEEN ? AND ?
     GROUP BY d.department_id, d.department_name
     ORDER BY d.department_name ASC
   `;
 
-  console.log("Executing SQL:", sql);
+  // Query phụ - lấy chi tiết tiến độ theo khoảng
+  const progressSql = `
+    SELECT
+      d.department_id,
+      d.department_name,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent = 0 OR cf.progress_percent IS NULL THEN o.okr_id END) AS progress_0,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 0 AND cf.progress_percent <= 40 THEN o.okr_id END) AS progress_1_40,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 40 AND cf.progress_percent <= 70 THEN o.okr_id END) AS progress_41_70,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 70 THEN o.okr_id END) AS progress_70_plus
+    FROM departments d
+    INNER JOIN users u ON u.department_id = d.department_id
+    INNER JOIN okrs o ON o.user_id = u.user_id
+    LEFT JOIN (
+      SELECT 
+        okr_id,
+        progress_percent,
+        ROW_NUMBER() OVER (PARTITION BY okr_id ORDER BY checkin_date DESC, created_at DESC) as rn
+      FROM checkin_form
+      WHERE checkin_date BETWEEN ? AND ?
+    ) cf ON cf.okr_id = o.okr_id AND cf.rn = 1
+    GROUP BY d.department_id, d.department_name
+    ORDER BY d.department_name ASC
+  `;
 
-  db.query(sql, (err, result) => {
+  console.log("Executing main SQL:", sql);
+  console.log("Params:", [startDate, endDate]);
+
+  db.query(sql, [startDate, endDate], (err, result) => {
+    if (err) {
+      console.error("❌ SQL Error:", err);
+      return res.status(500).json({ 
+        message: "Database error",
+        error: err.message,
+        sql: sql 
+      });
+    }
+
+    console.log("✅ Main query OK! Rows:", result ? result.length : 0);
+    
+    // Query chi tiết tiến độ
+    db.query(progressSql, [startDate, endDate], (err2, progressResult) => {
+      if (err2) {
+        console.error("❌ Progress SQL Error:", err2);
+        return res.status(500).json({ 
+          message: "Database error",
+          error: err2.message
+        });
+      }
+
+      console.log("✅ Progress query OK! Rows:", progressResult ? progressResult.length : 0);
+
+      if (!result || result.length === 0) {
+        console.log("⚠️ No data - returning empty array");
+        return res.json({
+          departmentTable: [],
+          departmentProgress: [],
+          dateRange: { start: startDate, end: endDate },
+          message: "Không có dữ liệu. Vui lòng tạo OKR trước!"
+        });
+      }
+      
+      const departmentTable = result.map(row => ({
+        department_id: row.department_id,
+        department_name: row.department_name || 'N/A',
+        total_okrs: parseInt(row.total_okrs) || 0,
+        not_checked_in: parseInt(row.not_checked_in) || 0,
+        draft: parseInt(row.draft) || 0,
+        completed: parseInt(row.completed) || 0,
+        avg_progress: parseFloat(row.avg_progress) || 0
+      }));
+
+      const departmentProgress = (progressResult || []).map(row => ({
+        department_id: row.department_id,
+        department_name: row.department_name || 'N/A',
+        progress_0: parseInt(row.progress_0) || 0,
+        progress_1_40: parseInt(row.progress_1_40) || 0,
+        progress_41_70: parseInt(row.progress_41_70) || 0,
+        progress_70_plus: parseInt(row.progress_70_plus) || 0
+      }));
+
+      console.log("Returning data:");
+      console.log("- departmentTable:", departmentTable.length, "rows");
+      console.log("- departmentProgress:", departmentProgress.length, "rows");
+
+      res.json({
+        departmentTable: departmentTable,
+        departmentProgress: departmentProgress,
+        dateRange: { start: startDate, end: endDate }
+      });
+    });
+  });
+});
+
+// API lấy thống kê điểm CFR theo user - PHẢI ĐẶT SAU /api/okrs/statistics
+app.get("/api/cfrs/statistics", (req, res) => {
+  console.log("=== DEBUG CFR STATISTICS API ===");
+  console.log("Request query:", req.query);
+  
+  const startDate = req.query.start_date || '2025-10-01';
+  const endDate = req.query.end_date || '2025-11-30';
+
+  console.log("Using date range:", startDate, "to", endDate);
+
+  const sql = `
+    SELECT
+      department_name AS 'Phòng ban',
+      fullname AS 'Nhân viên',
+      SUM(okr_points) AS 'Điểm OKR',
+      SUM(conversation_points) AS 'Điểm C',
+      SUM(feedback_points) AS 'Điểm F',
+      SUM(recognition_points) AS 'Điểm R',
+      SUM(total_reward_points) AS 'Tổng điểm'
+    FROM report_user_reward_points_day
+    WHERE day_start BETWEEN ? AND ?
+    GROUP BY user_id, fullname, department_id, department_name
+    ORDER BY SUM(total_reward_points) DESC
+  `;
+
+  console.log("Executing SQL:", sql);
+  console.log("Params:", [startDate, endDate]);
+
+  db.query(sql, [startDate, endDate], (err, result) => {
     if (err) {
       console.error("❌ SQL Error:", err);
       return res.status(500).json({ 
@@ -894,33 +1013,34 @@ app.get("/api/okrs/statistics", (req, res) => {
     if (!result || result.length === 0) {
       console.log("⚠️ No data - returning empty array");
       return res.json({
-        departmentTable: [],
+        cfrTable: [],
         dateRange: { start: startDate, end: endDate },
-        message: "Không có dữ liệu. Vui lòng tạo OKR trước!"
+        message: "Không có dữ liệu trong khoảng thời gian này"
       });
     }
     
     console.log("First row:", result[0]);
     
-    const departmentTable = result.map(row => ({
-      department_id: row.department_id,
-      department_name: row.department_name || 'N/A',
-      total_okrs: parseInt(row.total_okrs) || 0,
-      not_checked_in: parseInt(row.not_checked_in) || 0,
-      draft: parseInt(row.draft) || 0,
-      completed: parseInt(row.completed) || 0,
-      avg_progress: parseFloat(row.avg_progress) || 0
+    const cfrTable = result.map(row => ({
+      department_name: row['Phòng ban'] || 'N/A',
+      fullname: row['Nhân viên'] || 'N/A',
+      okr_points: parseInt(row['Điểm OKR']) || 0,
+      conversation_points: parseInt(row['Điểm C']) || 0,
+      feedback_points: parseInt(row['Điểm F']) || 0,
+      recognition_points: parseInt(row['Điểm R']) || 0,
+      total_points: parseInt(row['Tổng điểm']) || 0
     }));
 
-    console.log("Returning data:", departmentTable);
+    console.log("Returning data:", cfrTable.length, "rows");
 
     res.json({
-      departmentTable: departmentTable,
+      cfrTable: cfrTable,
       dateRange: { start: startDate, end: endDate }
     });
   });
 });
 
+// ============= STATISTICS ROUTE - PHẢI ĐẶT TRƯỚC TẤT CẢ ROUTE CÓ :id =============
 // API lấy danh sách OKRs (với thông tin check-in mới nhất)
 app.get("/api/okrs", (req, res) => {
   const sql = `
@@ -1784,8 +1904,75 @@ app.get("/api/checkin-reviews/okr/:okr_id", (req, res) => {
   });
 });
 
-// ============= CFR APIs =============
+// API lấy danh sách Feedback
+app.get("/api/feedback", (req, res) => {
+  const sql = `
+    SELECT 
+      f.*,
+      s.fullname AS sender_name,
+      s.avatar AS sender_avatar,
+      r.fullname AS receiver_name,
+      r.avatar AS receiver_avatar
+    FROM feedback f
+    LEFT JOIN users s ON f.sender_id = s.user_id
+    LEFT JOIN users r ON f.receiver_id = r.user_id
+    ORDER BY f.feedback_date DESC
+    LIMIT 100
+  `;
 
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ Get feedback error:", err);
+      return res.status(500).json({ message: "Failed to fetch feedback", error: err.message });
+    }
+
+    console.log("✅ Feedbacks fetched:", result.length, "rows");
+
+    const feedbacks = (result || []).map(fb => ({
+      ...fb,
+      sender_avatar_url: fb.sender_avatar ? `http://localhost:${PORT}/uploads/${fb.sender_avatar}` : null,
+      receiver_avatar_url: fb.receiver_avatar ? `http://localhost:${PORT}/uploads/${fb.receiver_avatar}` : null
+    }));
+
+    res.json(feedbacks);
+  });
+});
+
+// API lấy danh sách Recognition
+app.get("/api/recognitions", (req, res) => {
+  const sql = `
+    SELECT 
+      r.*,
+      s.fullname AS sender_name,
+      s.avatar AS sender_avatar,
+      rec.fullname AS receiver_name,
+      rec.avatar AS receiver_avatar
+    FROM recognition r
+    LEFT JOIN users s ON r.sender_id = s.user_id
+    LEFT JOIN users rec ON r.receiver_id = rec.user_id
+    ORDER BY r.recognition_date DESC
+    LIMIT 100
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error("❌ Get recognition error:", err);
+      return res.status(500).json({ message: "Failed to fetch recognition", error: err.message });
+    }
+
+    console.log("✅ Recognitions fetched:", result.length, "rows");
+
+    const recognitions = (result || []).map(rec => ({
+      ...rec,
+      sender_avatar_url: rec.sender_avatar ? `http://localhost:${PORT}/uploads/${rec.sender_avatar}` : null,
+      receiver_avatar_url: rec.receiver_avatar ? `http://localhost:${PORT}/uploads/${rec.receiver_avatar}` : null
+    }));
+
+    res.json(recognitions);
+  });
+});
+
+// ============= CFR APIs =============
 // API lấy danh sách Conversations
 app.get("/api/conversations", (req, res) => {
   const sql = `
@@ -1860,40 +2047,6 @@ app.post("/api/conversations", (req, res) => {
 
     console.log("✅ Conversation created with ID:", result.insertId);
     res.json({ message: "Conversation created successfully", conversation_id: result.insertId });
-  });
-});
-
-// API lấy danh sách Feedback
-app.get("/api/feedback", (req, res) => {
-  const sql = `
-    SELECT 
-      f.*,
-      s.fullname AS sender_name,
-      s.avatar AS sender_avatar,
-      r.fullname AS receiver_name,
-      r.avatar AS receiver_avatar
-    FROM feedback f
-    LEFT JOIN users s ON f.sender_id = s.user_id
-    LEFT JOIN users r ON f.receiver_id = r.user_id
-    ORDER BY f.feedback_date DESC
-    LIMIT 100
-  `;
-
-  db.query(sql, (err, result) => {
-    if (err) {
-      console.error("❌ Get feedback error:", err);
-      return res.status(500).json({ message: "Failed to fetch feedback", error: err.message });
-    }
-
-    console.log("✅ Feedbacks fetched:", result.length, "rows");
-
-    const feedbacks = (result || []).map(fb => ({
-      ...fb,
-      sender_avatar_url: fb.sender_avatar ? `http://localhost:${PORT}/uploads/${fb.sender_avatar}` : null,
-      receiver_avatar_url: fb.receiver_avatar ? `http://localhost:${PORT}/uploads/${fb.receiver_avatar}` : null
-    }));
-
-    res.json(feedbacks);
   });
 });
 
@@ -1988,40 +2141,177 @@ app.post("/api/recognitions", upload.single("evidence_file"), (req, res) => {
   });
 });
 
-// API lấy danh sách Recognition
-app.get("/api/recognitions", (req, res) => {
+// API lấy tổng điểm của user từ view (đặt trước /api/store/redeem)
+app.get("/api/store/user-points", (req, res) => {
+  console.log("=== DEBUG GET USER POINTS ===");
+  
+  // Lấy user_id từ token
+  let userId = null;
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length === 2 && parts[0] === "Bearer") {
+    try {
+      const payload = jwt.verify(parts[1], "secret_key");
+      userId = payload.id;
+      console.log("✅ User ID from token:", userId);
+    } catch (e) {
+      console.warn("❌ Invalid token:", e.message);
+      return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+  } else {
+    console.warn("❌ No authorization header found");
+    return res.status(401).json({ message: "Cần đăng nhập" });
+  }
+
+  // Query từ view report_user_reward_points_day
+  // Lấy tổng điểm mới nhất của user
   const sql = `
     SELECT 
-      r.*,
-      s.fullname AS sender_name,
-      s.avatar AS sender_avatar,
-      rec.fullname AS receiver_name,
-      rec.avatar AS receiver_avatar
-    FROM recognition r
-    LEFT JOIN users s ON r.sender_id = s.user_id
-    LEFT JOIN users rec ON r.receiver_id = rec.user_id
-    ORDER BY r.recognition_date DESC
-    LIMIT 100
+      department_name AS 'Phòng ban',
+      fullname AS 'Nhân viên',
+      SUM(okr_points) AS 'Điểm OKR',
+      SUM(conversation_points) AS 'Điểm C',
+      SUM(feedback_points) AS 'Điểm F',
+      SUM(recognition_points) AS 'Điểm R',
+      SUM(total_reward_points) AS 'Tổng điểm'
+    FROM report_user_reward_points_day
+    WHERE user_id = ?
+      AND day_start BETWEEN '2025-10-01' AND '2025-11-30'
+    GROUP BY user_id, fullname, department_id, department_name
+    ORDER BY SUM(total_reward_points) DESC
+    LIMIT 1
+  `;
+
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      console.error("❌ Get user points error:", err);
+      return res.status(500).json({ message: "Database error: " + err.message });
+    }
+
+    if (!result || result.length === 0) {
+      console.log("⚠️ No points data found for user");
+      // Trả về 0 điểm nếu chưa có dữ liệu
+      return res.json({
+        total_points: 0,
+        okr_points: 0,
+        conversation_points: 0,
+        feedback_points: 0,
+        recognition_points: 0,
+        department_name: null,
+        fullname: null
+      });
+    }
+
+    const data = result[0];
+    console.log("✅ User points fetched:", data);
+
+    res.json({
+      total_points: parseInt(data['Tổng điểm']) || 0,
+      okr_points: parseInt(data['Điểm OKR']) || 0,
+      conversation_points: parseInt(data['Điểm C']) || 0,
+      feedback_points: parseInt(data['Điểm F']) || 0,
+      recognition_points: parseInt(data['Điểm R']) || 0,
+      department_name: data['Phòng ban'],
+      fullname: data['Nhân viên']
+    });
+  });
+});
+
+// API lấy danh sách quà trong store
+app.get("/api/store", (req, res) => {
+  const sql = `
+    SELECT store_id, gift_name, gift_points, gift_description 
+    FROM store
+    ORDER BY gift_points ASC
   `;
 
   db.query(sql, (err, result) => {
     if (err) {
-      console.error("❌ Get recognition error:", err);
-      return res.status(500).json({ message: "Failed to fetch recognition", error: err.message });
+      console.error("❌ Get store error:", err);
+      return res.status(500).json({ message: "Failed to fetch gifts", error: err.message });
     }
 
-    console.log("✅ Recognitions fetched:", result.length, "rows");
-
-    const recognitions = (result || []).map(rec => ({
-      ...rec,
-      sender_avatar_url: rec.sender_avatar ? `http://localhost:${PORT}/uploads/${rec.sender_avatar}` : null,
-      receiver_avatar_url: rec.receiver_avatar ? `http://localhost:${PORT}/uploads/${rec.receiver_avatar}` : null
-    }));
-
-    res.json(recognitions);
+    console.log("✅ Gifts fetched:", result.length, "items");
+    res.json(result);
   });
 });
 
+// API đổi quà
+app.post("/api/store/redeem", (req, res) => {
+  console.log("=== DEBUG REDEEM GIFT ===");
+  console.log("Request body:", req.body);
+
+  // Lấy user_id từ token
+  let userId = null;
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length === 2 && parts[0] === "Bearer") {
+    try {
+      const payload = jwt.verify(parts[1], "secret_key");
+      userId = payload.id;
+      console.log("✅ User ID from token:", userId);
+    } catch (e) {
+      console.warn("❌ Invalid token:", e.message);
+      return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+  } else {
+    console.warn("❌ No authorization header found");
+    return res.status(401).json({ message: "Cần đăng nhập để đổi quà" });
+  }
+
+  const { gift_id } = req.body;
+
+  if (!gift_id) {
+    return res.status(400).json({ message: "Missing gift_id" });
+  }
+
+  // Lấy thông tin quà
+  db.query("SELECT gift_points FROM store WHERE store_id = ?", [gift_id], (err, giftResult) => {
+    if (err) {
+      console.error("❌ Get gift error:", err);
+      return res.status(500).json({ message: "Database error: " + err.message });
+    }
+
+    if (!giftResult.length) {
+      return res.status(404).json({ message: "Quà không tồn tại" });
+    }
+
+    const giftPoints = giftResult[0].gift_points;
+
+    // Lấy điểm hiện tại của user
+    db.query("SELECT bonus_points FROM users WHERE user_id = ?", [userId], (err2, userResult) => {
+      if (err2) {
+        console.error("❌ Get user points error:", err2);
+        return res.status(500).json({ message: "Database error: " + err2.message });
+      }
+
+      if (!userResult.length) {
+        return res.status(404).json({ message: "User không tồn tại" });
+      }
+
+      const currentPoints = userResult[0].bonus_points || 0;
+
+      if (currentPoints < giftPoints) {
+        return res.status(400).json({ message: "Không đủ điểm để đổi quà" });
+      }
+
+      // Trừ điểm
+      const newPoints = currentPoints - giftPoints;
+      db.query("UPDATE users SET bonus_points = ? WHERE user_id = ?", [newPoints, userId], (err3) => {
+        if (err3) {
+          console.error("❌ Update points error:", err3);
+          return res.status(500).json({ message: "Failed to update points: " + err3.message });
+        }
+
+        console.log("✅ Gift redeemed successfully");
+        res.json({ 
+          message: "Đổi quà thành công",
+          new_points: newPoints
+        });
+      });
+    });
+  });
+});
 
 // Thêm error handler cuối cùng để trả JSON cho mọi lỗi (tránh HTML stack trace)
 app.use((err, req, res, next) => {

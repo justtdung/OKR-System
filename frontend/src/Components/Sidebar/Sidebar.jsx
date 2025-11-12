@@ -31,6 +31,17 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
     if (typeof setActiveNav === 'function') setActiveNav(id);
   };
 
+  // Thêm item mới vào danh sách menu:
+  const menuItems = [
+    { name: 'DASHBOARD', icon: '📊' },
+    { name: 'OKRS', icon: '🎯' },
+    { name: 'CHECK-IN', icon: '✅' },
+    { name: 'TODAYLIST', icon: '📝' },
+    { name: 'CFRS', icon: '💬' },
+    { name: 'STORE', icon: '🎁' },
+    { name: 'REPORT', icon: '📈' }
+  ];
+
   return (
     // aside cố định bên trái, z-index cao để không bị nội dung chồng lấn
     <aside className="fixed left-0 top-0 w-56 bg-white border-r border-gray-200 flex flex-col h-screen z-50 overflow-auto">
@@ -41,14 +52,14 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
 
       {/* Menu */}
       <nav className="flex-1 p-4 overflow-auto">
-        {CONSTANTS.NAV_ITEMS.map(({ id, icon: Icon, label }) => (
+        {menuItems.map(({ name, icon }, index) => (
           <button
-            key={id}
-            onClick={() => navTo(id)}
-            className={`sidebar-btn ${activeNav === id ? 'sidebar-btn-active' : ''}`}
+            key={name}
+            onClick={() => navTo(name)}
+            className={`sidebar-btn ${activeNav === name ? 'sidebar-btn-active' : ''}`}
           >
-            <Icon className="w-5 h-5" />
-            <span>{label}</span>
+            {icon}
+            <span>{name}</span>
           </button>
         ))}
       </nav>
