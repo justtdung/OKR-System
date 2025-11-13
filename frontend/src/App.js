@@ -15,6 +15,7 @@ import Checkin from './Features/Checkin/Checkin';
 import CFRs from './Features/CFRs/CFRs';
 import Report from './Features/Report/Report';
 import Store from './Features/Store/Store';
+import AdminUsers from './Pages/AdminUsers/AdminUsers';
 
 // 🔹 Config
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -282,6 +283,10 @@ export default function App() {
                     onSubmit={handleUpdateProfile}
                   />
                 } />
+                {/* Route Admin - CHỈ CHO ADMIN */}
+                {user?.username === 'admin' && (
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                )}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

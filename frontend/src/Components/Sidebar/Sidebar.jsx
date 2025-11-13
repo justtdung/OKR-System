@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut } from 'lucide-react';
-import CONSTANTS from '../../Assets/constants';
 import Logo from '../../Assets/logo.png';
 import './Sidebar.css';
 
@@ -26,6 +25,7 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
       id === 'OKRs' ? '/okrs' :
       (id === 'Check-in' || id === 'Checkin') ? '/checkin' :
       id === 'TodayList' ? '/todaylist' :
+      id === 'Admin' ? '/admin/users' :
       `/${id.toLowerCase()}`;
     doNavigate(path);
     if (typeof setActiveNav === 'function') setActiveNav(id);
@@ -97,6 +97,22 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
           </div>
         </button>
 
+        {/* Button Quản lý tài khoản - CHỈ HIỆN VỚI ADMIN */}
+        {user?.username === 'admin' && (
+          <button
+            type="button"
+            onClick={() => {
+              doNavigate('/admin/users');
+              if (typeof setActiveNav === 'function') setActiveNav('Admin');
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 mb-2 text-blue-600 hover:text-white hover:bg-blue-500 rounded-lg transition border border-blue-600"
+            aria-label="Quản lý tài khoản"
+          >
+            <span>👥</span>
+            <span>Quản lý tài khoản</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => {
@@ -110,7 +126,7 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
             }
           }}
           aria-label="Đăng xuất"
-          className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:text-white hover:bg-red-500 rounded-lg transition"
+          className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:text-white hover:bg-red-500 rounded-lg transition border border-red-600"
         >
           <LogOut className="w-4 h-4" />
           <span>Đăng xuất</span>

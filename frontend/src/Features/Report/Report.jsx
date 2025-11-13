@@ -14,6 +14,7 @@ export default function Report() {
     progress_41_70: 0,
     progress_70_plus: 0
   });
+  const [hoveredSegment, setHoveredSegment] = useState(null);
   
   const getDefaultDates = () => {
     const now = new Date();
@@ -138,64 +139,136 @@ export default function Report() {
       );
     }
 
-    // Tính góc cho mỗi phần
+    // Tính góc cho mỗi phần - chỉ thêm segments có giá trị > 0
     const segments = [
-      { value: individualStats.progress_70_plus, color: '#10b981', label: individualStats.progress_70_plus },
-      { value: individualStats.progress_41_70, color: '#f97316', label: individualStats.progress_41_70 },
-      { value: individualStats.progress_1_40, color: '#ef4444', label: individualStats.progress_1_40 },
-      { value: individualStats.progress_0, color: '#6b7280', label: individualStats.progress_0 }
-    ];
+      { value: individualStats.progress_70_plus, color: '#10b981', label: individualStats.progress_70_plus, id: 'green' },
+      { value: individualStats.progress_41_70, color: '#f97316', label: individualStats.progress_41_70, id: 'orange' },
+      { value: individualStats.progress_1_40, color: '#ef4444', label: individualStats.progress_1_40, id: 'red' },
+      { value: individualStats.progress_0, color: '#6b7280', label: individualStats.progress_0, id: 'gray' }
+    ].filter(segment => segment.value > 0);
 
-    let currentAngle = 0;
+    let currentAngle = -90; // Bắt đầu từ đỉnh (12 giờ) - góc -90 độ
     const labels = [];
 
     segments.forEach((segment) => {
-      if (segment.value > 0) {
-        const percentage = (segment.value / total) * 100;
-        const angle = (percentage / 100) * 360;
-        const midAngle = currentAngle + (angle / 2);
-        
-        // Đặt số liệu bên trong vòng tròn (trên viền)
-        const labelRadius = 60;
-        
-        const radians = (midAngle * Math.PI) / 180;
-        const labelX = 100 + labelRadius * Math.cos(radians);
-        const labelY = 100 + labelRadius * Math.sin(radians);
-        
-        labels.push({
-          labelX: labelX,
-          labelY: labelY,
-          value: segment.label,
-          color: segment.color
-        });
-        
-        currentAngle += angle;
-      } else {
-        const percentage = (segment.value / total) * 100;
-        const angle = (percentage / 100) * 360;
-        currentAngle += angle;
-      }
+      const percentage = (segment.value / total) * 100;
+      const angle = (percentage / 100) * 360;
+      const midAngle = currentAngle + (angle / 2);
+      
+      // Đặt số liệu bên ngoài vòng tròn
+      const innerRadius = 75;
+      const outerRadius = 110;
+      
+      const radians = (midAngle * Math.PI) / 180;
+      
+      const lineStartX = 100 + innerRadius * Math.cos(radians);
+      const lineStartY = 100 + innerRadius * Math.sin(radians);
+      
+      const lineEndX = 100 + outerRadius * Math.cos(radians);
+      const lineEndY = 100 + outerRadius * Math.sin(radians);
+      
+      const displayPercentage = percentage.toFixed(1);
+      
+      // Tính góc chuẩn hóa để xác định vị trí label (trái/phải)
+      const normalizedAngle = ((midAngle % 360) + 360) % 360;
+      
+      labels.push({
+        lineStartX,
+        lineStartY,
+        lineEndX,
+        lineEndY,
+        labelX: lineEndX,
+        labelY: lineEndY,
+        value: segment.label,
+        percentage: displayPercentage,
+        color: segment.color,
+        id: segment.id,
+        midAngle: normalizedAngle
+      });
+      
+      currentAngle += angle;
     });
 
     return (
       <div className="donut-chart-container">
-        <svg viewBox="0 0 200 200" className="donut-chart">
-          <circle cx="100" cy="100" r="60" fill="none" stroke="#e0e0e0" strokeWidth="30"/>
-          {renderDonutSegments(total)}
-          {labels.map((label, index) => (
-            <text
-              key={index}
-              x={label.labelX}
-              y={label.labelY}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="donut-label-text"
-              fill="white"
-              fontWeight="700"
-            >
-              {label.value}
-            </text>
-          ))}
+        <svg viewBox="0 0 240 240" className="donut-chart">
+          {/* Donut segments */}
+          <g transform="translate(20, 20)">
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#e0e0e0" strokeWidth="30"/>
+            {renderDonutSegments(total)}
+          </g>
+          
+          {/* Lines and labels - chỉ hiện khi hover */}
+          <g transform="translate(20, 20)">
+            {labels.map((label, index) => (
+              <g 
+                key={index}
+                className={`donut-segment-group ${hoveredSegment === label.id ? 'hovered' : ''}`}
+                onMouseEnter={() => setHoveredSegment(label.id)}
+                onMouseLeave={() => setHoveredSegment(null)}
+              >
+                {hoveredSegment === label.id && (
+                  <>
+                    <line
+                      x1={label.lineStartX}
+                      y1={label.lineStartY}
+                      x2={label.lineEndX}
+                      y2={label.lineEndY}
+                      stroke={label.color}
+                      strokeWidth="2"
+                      className="donut-line"
+                    />
+                    
+                    <circle
+                      cx={label.lineEndX}
+                      cy={label.lineEndY}
+                      r="3"
+                      fill={label.color}
+                      className="donut-line-dot"
+                    />
+                    
+                    <g className="donut-label-group">
+                      <rect
+                        x={label.labelX + (label.midAngle > 90 && label.midAngle < 270 ? -70 : 5)}
+                        y={label.labelY - 18}
+                        width="65"
+                        height="36"
+                        fill="white"
+                        stroke={label.color}
+                        strokeWidth="2"
+                        rx="4"
+                        className="label-background"
+                      />
+                      
+                      <text
+                        x={label.labelX + (label.midAngle > 90 && label.midAngle < 270 ? -37.5 : 37.5)}
+                        y={label.labelY - 4}
+                        textAnchor="middle"
+                        className="donut-label-percentage"
+                        fill={label.color}
+                        fontWeight="700"
+                        fontSize="14"
+                      >
+                        {label.percentage}%
+                      </text>
+                      
+                      <text
+                        x={label.labelX + (label.midAngle > 90 && label.midAngle < 270 ? -37.5 : 37.5)}
+                        y={label.labelY + 10}
+                        textAnchor="middle"
+                        className="donut-label-value"
+                        fill="#374151"
+                        fontWeight="600"
+                        fontSize="12"
+                      >
+                        ({label.value})
+                      </text>
+                    </g>
+                  </>
+                )}
+              </g>
+            ))}
+          </g>
         </svg>
       </div>
     );
@@ -207,11 +280,11 @@ export default function Report() {
     let currentOffset = 0;
 
     const segments = [
-      { value: individualStats.progress_70_plus, color: '#10b981' },
-      { value: individualStats.progress_41_70, color: '#f97316' },
-      { value: individualStats.progress_1_40, color: '#ef4444' },
-      { value: individualStats.progress_0, color: '#6b7280' }
-    ];
+      { value: individualStats.progress_70_plus, color: '#10b981', id: 'green' },
+      { value: individualStats.progress_41_70, color: '#f97316', id: 'orange' },
+      { value: individualStats.progress_1_40, color: '#ef4444', id: 'red' },
+      { value: individualStats.progress_0, color: '#6b7280', id: 'gray' }
+    ].filter(segment => segment.value > 0);
 
     return segments.map((segment, index) => {
       const percentage = (segment.value / total) * 100;
@@ -231,7 +304,14 @@ export default function Report() {
           strokeWidth="30"
           strokeDasharray={`${dashLength} ${circumference - dashLength}`}
           strokeDashoffset={dashOffset}
-          transform="rotate(0 100 100)"
+          transform="rotate(-90 100 100)"
+          className="donut-segment"
+          style={{
+            opacity: hoveredSegment === null || hoveredSegment === segment.id ? 1 : 0.3,
+            transition: 'opacity 0.3s ease'
+          }}
+          onMouseEnter={() => setHoveredSegment(segment.id)}
+          onMouseLeave={() => setHoveredSegment(null)}
         />
       );
     });

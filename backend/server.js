@@ -121,7 +121,7 @@ const normalizeDeadline = (val) => {
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         const hh = String(d.getHours()).padStart(2, '0');
-        const mi = String(d.getMinutes()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0')
         const ss = String(d.getSeconds()).padStart(2, '0');
         return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
       }
@@ -278,7 +278,76 @@ app.get("/api/departments", (req, res) => {
   });
 });
 
-// Get all users (for superior selection)
+// API lấy tất cả users (cho admin) - PHẢI ĐẶT TRƯỚC /api/users/:id VÀ /api/users
+app.get("/api/users/all", (req, res) => {
+  console.log("=== GET ALL USERS API ===");
+  
+  // Kiểm tra quyền admin
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  try {
+    const payload = jwt.verify(parts[1], "secret_key");
+    console.log("User ID from token:", payload.id);
+    
+    // Lấy thông tin user hiện tại để check role
+    db.query("SELECT username FROM users WHERE user_id = ?", [payload.id], (err, userResult) => {
+      if (err) {
+        console.error("❌ Check admin error:", err);
+        return res.status(500).json({ message: "Server error" });
+      }
+      
+      console.log("Current user:", userResult[0]);
+      
+      if (!userResult.length || userResult[0].username !== 'admin') {
+        console.log("❌ Not admin!");
+        return res.status(403).json({ message: "Chỉ admin mới có quyền truy cập" });
+      }
+
+      console.log("✅ User is admin, fetching all users...");
+
+      // Lấy danh sách tất cả users
+      const sql = `
+        SELECT 
+          u.user_id,
+          u.username,
+          u.password,
+          u.fullname,
+          u.email,
+          u.phone_number,
+          u.role,
+          u.gender,
+          u.date_birth,
+          u.month_birth,
+          u.year_birth,
+          u.avatar,
+          u.department_id,
+          u.superior,
+          d.department_name
+        FROM users u
+        LEFT JOIN departments d ON u.department_id = d.department_id
+        ORDER BY u.user_id ASC
+      `;
+
+      db.query(sql, (err2, result) => {
+        if (err2) {
+          console.error("❌ Get all users error:", err2);
+          return res.status(500).json({ message: "Failed to fetch users" });
+        }
+        console.log("✅ Fetched", result.length, "users");
+        res.json(result);
+      });
+    });
+  } catch (e) {
+    console.error("❌ Token error:", e);
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// Get all users (for superior selection) - ĐẶT SAU /api/users/all
 app.get("/api/users", (req, res) => {
   db.query("SELECT user_id, fullname, role, department_id FROM users ORDER BY fullname", (err, result) => {
     if (err) {
@@ -289,7 +358,7 @@ app.get("/api/users", (req, res) => {
   });
 });
 
-// API lấy thông tin user bao gồm superior - PHẢI ĐẶT SAU /api/users
+// API lấy thông tin user bao gồm superior - PHẢI ĐẶT SAU /api/users/all VÀ /api/users
 app.get("/api/users/:id", (req, res) => {
   const userId = parseInt(req.params.id);
   
@@ -305,6 +374,7 @@ app.get("/api/users/:id", (req, res) => {
     SELECT 
       u.user_id,
       u.username,
+      u.password,
       u.fullname,
       u.email,
       u.phone_number,
@@ -346,6 +416,7 @@ app.get("/api/users/:id", (req, res) => {
     const response = {
       user_id: user.user_id,
       username: user.username,
+      password: user.password,
       fullname: user.fullname,
       email: user.email,
       phone_number: user.phone_number,
@@ -371,7 +442,7 @@ app.get("/api/users/:id", (req, res) => {
 
 // Create or update user
 app.post("/api/users", (req, res) => {
-  const { fullname, username, day, month, year, gender, phone, email, superior, department, role } = req.body;
+  const { fullname, username, password, day, month, year, gender, phone, email, superior, department, role } = req.body;
   if (!fullname || !username || !phone || !email) return res.status(400).json({ message: "Missing required fields" });
 
   const birth = { date_birth: day ? parseInt(day) : null, month_birth: month ? parseInt(month) : null, year_birth: year ? parseInt(year) : null };
@@ -2311,6 +2382,204 @@ app.post("/api/store/redeem", (req, res) => {
       });
     });
   });
+});
+
+// API tạo user mới (cho admin) - CHỈ CẦN USERNAME VÀ PASSWORD
+app.post("/api/users/create", (req, res) => {
+  console.log("=== CREATE USER BY ADMIN ===");
+  
+  // Kiểm tra quyền admin
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  try {
+    const payload = jwt.verify(parts[1], "secret_key");
+    
+    // Lấy thông tin user hiện tại để check role
+    db.query("SELECT username FROM users WHERE user_id = ?", [payload.id], (err, userResult) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (!userResult.length || userResult[0].username !== 'admin') {
+        return res.status(403).json({ message: "Chỉ admin mới có quyền thêm user" });
+      }
+
+      const { username, password } = req.body;
+
+      // Validation - CHỈ CẦN USERNAME VÀ PASSWORD
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username và password không được để trống" });
+      }
+
+      console.log("Creating user:", username);
+
+      // Check username đã tồn tại chưa
+      db.query("SELECT user_id FROM users WHERE username = ?", [username], (err2, existing) => {
+        if (err2) return res.status(500).json({ message: "Server error" });
+        if (existing.length) {
+          return res.status(400).json({ message: "Username đã tồn tại" });
+        }
+
+        // Insert user mới - CHỈ USERNAME VÀ PASSWORD
+        const sql = `INSERT INTO users (username, password) VALUES (?, ?)`;
+        const params = [username, password];
+
+        db.query(sql, params, (err3, result) => {
+          if (err3) {
+            console.error("❌ Create user error:", err3);
+            return res.status(500).json({ message: "Failed to create user: " + err3.message });
+          }
+
+          console.log("✅ User created with ID:", result.insertId);
+          res.json({ message: "Tạo user thành công", user_id: result.insertId });
+        });
+      });
+    });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// API cập nhật user (cho admin) - CHỈ SỬA USERNAME VÀ PASSWORD
+app.put("/api/users/admin-update/:id", (req, res) => {
+  const userId = parseInt(req.params.id);
+  console.log("=== ADMIN UPDATE USER ===");
+  console.log("User ID:", userId);
+  
+  // Kiểm tra quyền admin
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  try {
+    const payload = jwt.verify(parts[1], "secret_key");
+    
+    // Lấy thông tin user hiện tại để check role
+    db.query("SELECT username FROM users WHERE user_id = ?", [payload.id], (err, userResult) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (!userResult.length || userResult[0].username !== 'admin') {
+        return res.status(403).json({ message: "Chỉ admin mới có quyền sửa user" });
+      }
+
+      const { username, password } = req.body;
+
+      // Validation
+      if (!username) {
+        return res.status(400).json({ message: "Username không được để trống" });
+      }
+
+      console.log("Updating user:", userId, "with username:", username);
+
+      // Không cho sửa tài khoản admin
+      db.query("SELECT username FROM users WHERE user_id = ?", [userId], (err2, targetUser) => {
+        if (err2) return res.status(500).json({ message: "Server error" });
+        if (!targetUser.length) {
+          return res.status(404).json({ message: "User không tồn tại" });
+        }
+        if (targetUser[0].username === 'admin' && username !== 'admin') {
+          return res.status(403).json({ message: "Không thể đổi username của admin" });
+        }
+
+        // Check username mới đã tồn tại chưa (nếu khác username cũ)
+        if (username !== targetUser[0].username) {
+          db.query("SELECT user_id FROM users WHERE username = ? AND user_id != ?", [username, userId], (err3, existing) => {
+            if (err3) return res.status(500).json({ message: "Server error" });
+            if (existing.length) {
+              return res.status(400).json({ message: "Username đã tồn tại" });
+            }
+
+            // Thực hiện update
+            performUpdate();
+          });
+        } else {
+          // Username không đổi, chỉ update password
+          performUpdate();
+        }
+
+        function performUpdate() {
+          let sql, params;
+          
+          if (password && password.trim() !== '') {
+            // Update cả username và password
+            sql = `UPDATE users SET username = ?, password = ? WHERE user_id = ?`;
+            params = [username, password, userId];
+          } else {
+            // Chỉ update username
+            sql = `UPDATE users SET username = ? WHERE user_id = ?`;
+            params = [username, userId];
+          }
+
+          console.log("Update SQL:", sql);
+          console.log("Params:", params);
+
+          db.query(sql, params, (err4, result) => {
+            if (err4) {
+              console.error("❌ Update user error:", err4);
+              return res.status(500).json({ message: "Failed to update user: " + err4.message });
+            }
+
+            console.log("✅ User updated:", userId);
+            res.json({ message: "Cập nhật user thành công" });
+          });
+        }
+      });
+    });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// API xóa user (cho admin)
+app.delete("/api/users/:id", (req, res) => {
+  const userId = parseInt(req.params.id);
+  console.log("=== DELETE USER BY ADMIN ===");
+  console.log("User ID to delete:", userId);
+  
+  // Kiểm tra quyền admin
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  try {
+    const payload = jwt.verify(parts[1], "secret_key");
+    
+    // Lấy thông tin user hiện tại để check role
+    db.query("SELECT username FROM users WHERE user_id = ?", [payload.id], (err, userResult) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (!userResult.length || userResult[0].username !== 'admin') {
+        return res.status(403).json({ message: "Chỉ admin mới có quyền xóa user" });
+      }
+
+      // Không cho xóa tài khoản admin
+      db.query("SELECT username FROM users WHERE user_id = ?", [userId], (err2, targetUser) => {
+        if (err2) return res.status(500).json({ message: "Server error" });
+        if (!targetUser.length) {
+          return res.status(404).json({ message: "User không tồn tại" });
+        }
+        if (targetUser[0].username === 'admin') {
+          return res.status(403).json({ message: "Không thể xóa tài khoản admin" });
+        }
+
+        // Xóa user
+        db.query("DELETE FROM users WHERE user_id = ?", [userId], (err3) => {
+          if (err3) {
+            console.error("❌ Delete user error:", err3);
+            return res.status(500).json({ message: "Failed to delete user: " + err3.message });
+          }
+
+          console.log("✅ User deleted:", userId);
+          res.json({ message: "Xóa user thành công" });
+        });
+      });
+    });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 });
 
 // Thêm error handler cuối cùng để trả JSON cho mọi lỗi (tránh HTML stack trace)
