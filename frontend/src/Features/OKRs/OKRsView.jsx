@@ -479,6 +479,42 @@ const OKRsView = ({ onOpenModal }) => {
     });
   };
 
+  const handleApproveOKR = async (okrId, e) => {
+    e.stopPropagation(); // Prevent row click
+
+    if (!window.confirm("Bạn có chắc chắn muốn duyệt OKR này?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/okrs/${okrId}/approve`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        alert("Duyệt OKR thành công!");
+        fetchOKRs(); // Refresh danh sách
+      } else {
+        const error = await response.json();
+        alert(error.message || "Không thể duyệt OKR");
+      }
+    } catch (error) {
+      console.error("Error approving OKR:", error);
+      alert("Đã xảy ra lỗi khi duyệt OKR");
+    }
+  };
+
+  // Kiểm tra xem user hiện tại có phải cấp trên của người tạo OKR không
+  const canApproveOKR = (okr) => {
+    if (!currentUser || !okr.creator) return false;
+    return currentUser.user_id === okr.creator.superior_id;
+  };
+
   return (
     <div className="ml-56 mt-16 p-6">
       {/* Summary Cards (dynamic) */}
@@ -667,6 +703,7 @@ const OKRsView = ({ onOpenModal }) => {
             <div className="col col-key text-center">Kết quả then chốt</div>
             <div className="col col-progress text-center">Tiến độ</div>
             <div className="col col-change text-center">Thay đổi</div>
+            <div className="col col-status text-center">Trạng thái</div>
           </div>
 
           {/* Data rows */}
@@ -748,6 +785,25 @@ const OKRsView = ({ onOpenModal }) => {
                     <div className="col col-change text-center">
                       <span className="okr-change">{okr.change || '--'}</span>
                     </div>
+
+                    <div className="col col-status text-center">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <span 
+                          className={`okr-status-badge ${okr.okr_status === 'Đã duyệt' ? 'status-approved' : 'status-pending'}`}
+                        >
+                          {okr.okr_status || 'Chưa duyệt'}
+                        </span>
+                        {okr.okr_status !== 'Đã duyệt' && canApproveOKR(okr) && (
+                          <button
+                            className="btn-approve-okr"
+                            onClick={(e) => handleApproveOKR(okr.id, e)}
+                            title="Duyệt OKR"
+                          >
+                            ✓
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Child Rows (if expanded) */}
@@ -808,6 +864,25 @@ const OKRsView = ({ onOpenModal }) => {
 
                       <div className="col col-change text-center">
                         <span className="okr-change">{childOkr.change || '--'}</span>
+                      </div>
+
+                      <div className="col col-status text-center">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <span 
+                            className={`okr-status-badge ${childOkr.okr_status === 'Đã duyệt' ? 'status-approved' : 'status-pending'}`}
+                          >
+                            {childOkr.okr_status || 'Chưa duyệt'}
+                          </span>
+                          {childOkr.okr_status !== 'Đã duyệt' && canApproveOKR(childOkr) && (
+                            <button
+                              className="btn-approve-okr"
+                              onClick={(e) => handleApproveOKR(childOkr.id, e)}
+                              title="Duyệt OKR"
+                            >
+                              ✓
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

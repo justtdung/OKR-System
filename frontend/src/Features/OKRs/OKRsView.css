@@ -74,10 +74,10 @@
   height: 1rem;
 }
 
-/* Table Layout */
+/* Table Layout - THÊM CỘT STATUS */
 .okrs-table-header {
   display: grid;
-  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr;
+  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr 1.3fr;
   gap: 1rem;
   padding: 0.75rem 1rem;
   border-bottom: 2px solid #e5e7eb;
@@ -88,7 +88,7 @@
 
 .okrs-row {
   display: grid;
-  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr;
+  grid-template-columns: 2.8fr 2fr 1.2fr 1.5fr 1.2fr 1.3fr;
   gap: 1rem;
   padding: 1rem;
   border: 2px solid #e5e7eb;
@@ -365,7 +365,7 @@
 @media (max-width: 1024px) {
   .okrs-table-header,
   .okrs-row {
-    grid-template-columns: 2fr 1.5fr 1fr 1.5fr 0.8fr;
+    grid-template-columns: 2fr 1.5fr 1fr 1.2fr 0.8fr 1.2fr;
     gap: 0.5rem;
   }
   
@@ -375,6 +375,18 @@
   
   .okr-owner-name {
     font-size: 0.75rem;
+  }
+  
+  .okr-status-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  
+  .btn-approve-okr {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-width: 28px;
+    height: 28px;
   }
 }
 
@@ -608,5 +620,90 @@
   .okr-detail-modal {
     margin: 1rem;
     max-width: calc(100vw - 2rem);
+  }
+}
+
+/* New styles for status column and approve button */
+.col-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.okr-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.btn-approve-okr {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.btn-approve-okr:hover {
+  background-color: #059669;
+  transform: scale(1.05);
+}
+
+.btn-approve-okr:active {
+  transform: scale(0.98);
+}
+
+/* Responsive adjustments - THÊM CỘT STATUS */
+@media (max-width: 1024px) {
+  .okrs-table-header,
+  .okrs-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1.2fr 0.8fr 1.2fr;
+    gap: 0.5rem;
+  }
+  
+  .okr-title {
+    font-size: 0.8rem;
+  }
+  
+  .okr-owner-name {
+    font-size: 0.75rem;
+  }
+  
+  .okr-status-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  
+  .btn-approve-okr {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-width: 28px;
+    height: 28px;
   }
 }

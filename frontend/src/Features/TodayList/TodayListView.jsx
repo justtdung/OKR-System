@@ -31,7 +31,15 @@ const TodayListView = () => {
 	const [tasks, setTasks] = useState([]);
 	const [departments, setDepartments] = useState([]);
 	const [selectedDept, setSelectedDept] = useState("");
-	const [selectedDate, setSelectedDate] = useState("");
+	// NEW: Thay đổi từ selectedDate sang startDate/endDate
+	const [startDate, setStartDate] = useState(() => {
+		const today = new Date();
+		return today.toISOString().split('T')[0];
+	});
+	const [endDate, setEndDate] = useState(() => {
+		const today = new Date();
+		return today.toISOString().split('T')[0];
+	});
 	const [loading, setLoading] = useState(true);
 
 	const [showCreateModal, setShowCreateModal] = useState(false);
@@ -224,6 +232,10 @@ const TodayListView = () => {
 			if (!res.ok) throw new Error("Không thể tải chi tiết công việc");
 			const t = await res.json();
 
+			console.log('=== LOADED TASK DETAIL ===');
+			console.log('Full task data:', t);
+			console.log('okr_id from API:', t.okr_id);
+
 			// xác định quyền dựa trên dữ liệu chi tiết trả về (ưu tiên id, fallback tên)
 			try {
 				const detailCreatorId = t.creator_id ?? t.created_by ?? t.user_id ?? t.task_creator_id ?? null;
@@ -244,6 +256,7 @@ const TodayListView = () => {
 			// Chuẩn hoá dữ liệu trả về thành shape CreateTodayList cần
 			const initial = {
 				id: t.task_id ?? t.id ?? id,
+				task_id: t.task_id ?? t.id ?? id, // ✅ Thêm task_id
 				title: t.task_name ?? t.title ?? task.text ?? "",
 				department: t.department_id ?? t.department ?? t.creator_department_id ?? task.department_name ?? "",
 				priority: t.priority ?? task.priority ?? "Trung bình",
@@ -253,12 +266,17 @@ const TodayListView = () => {
 				duration: t.estimate_time ?? t.duration ?? "",
 				attachments: t.attachments ?? t.files ?? [],
 				comments: t.comments ?? t.comment ?? "",
-				// preserve createdAt/time nếu backend trả
+				okr_id: t.okr_id || '', // ✅ Đảm bảo okr_id được map
+				okrId: t.okr_id || '', // ✅ Thêm alias cho chắc chắn
 				createdAt: t.created_at ?? t.createdAt ?? null,
 				time: t.created_at ? new Date(t.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
 				creator_id: t.creator_id ?? t.created_by ?? t.user_id ?? t.task_creator_id ?? null,
 				creator_name: t.creator_name ?? t.creator_username ?? null,
 			};
+
+			console.log('=== INITIAL DATA FOR MODAL ===');
+			console.log('initial.okr_id:', initial.okr_id);
+			console.log('Full initial:', initial);
 
 			setEditInitial(initial);
 			setShowCreateModal(true);
@@ -287,7 +305,12 @@ const TodayListView = () => {
 				description: taskData.description,
 				deadline: taskData.deadline,
 				estimate_time: taskData.duration,
+				okr_id: taskData.okr_id || null // ✅ THÊM DÒNG NÀY
 			};
+
+			console.log('=== HANDLE SAVE IN PARENT ===');
+			console.log('Task Data received:', taskData);
+			console.log('Payload to send:', payload);
 
 			const targetId = id || (editInitial && editInitial.id);
 			if (targetId) {
@@ -380,19 +403,6 @@ const TodayListView = () => {
 
 	// Thay đổi: lọc tasks kết hợp dept + priority + searchText
 	// helper: convert various date values to YYYY-MM-DD (or null)
-	const formatToYMD = (val) => {
-		if (!val) return null;
-		try {
-			const d = typeof val === "string" || typeof val === "number" ? new Date(val) : val instanceof Date ? val : new Date(val);
-			if (isNaN(d.getTime())) return null;
-			const yyyy = d.getFullYear();
-			const mm = String(d.getMonth() + 1).padStart(2, "0");
-			const dd = String(d.getDate()).padStart(2, "0");
-			return `${yyyy}-${mm}-${dd}`;
-		} catch {
-			return null;
-		}
-	};
 
 	// Handler cho click status card
 	const handleStatusCardClick = (status) => {
@@ -407,13 +417,22 @@ const TodayListView = () => {
 
 	const filteredTasks = tasks
 		.filter((t) => (!selectedDept ? true : t.department_name === selectedDept))
-		// filter by selected date: match createdAt or deadline
+		// filter by date range: match createdAt or deadline within range
 		.filter((t) => {
-			if (!selectedDate) return true;
-			const sel = selectedDate; // format YYYY-MM-DD from input[type=date]
-			const createdY = formatToYMD(t.createdAt ?? t.created_at);
-			const deadlineY = formatToYMD(t.deadline);
-			return (createdY && createdY === sel) || (deadlineY && deadlineY === sel);
+			if (!startDate && !endDate) return true;
+			
+			const start = new Date(startDate);
+			start.setHours(0, 0, 0, 0);
+			const end = new Date(endDate);
+			end.setHours(23, 59, 59, 999);
+			
+			const createdDate = t.createdAt ? new Date(t.createdAt) : null;
+			const deadlineDate = t.deadline ? new Date(t.deadline) : null;
+			
+			const createdInRange = createdDate && createdDate >= start && createdDate <= end;
+			const deadlineInRange = deadlineDate && deadlineDate >= start && deadlineDate <= end;
+			
+			return createdInRange || deadlineInRange;
 		})
 		.filter((t) =>
 			priorityFilter === "all"
@@ -441,16 +460,10 @@ const TodayListView = () => {
 				// điều chỉnh chiều cao: bớt trừ 4rem -> 3rem do margin-top giảm
 				style={{ height: "calc(95vh - 3rem - 1.5rem)" }} // 3rem = header khoảng nhỏ hơn, trừ chút padding
 			>
-				{/* Header trong card (title + date/filters) */}
+				{/* Header trong card (title + date range filter) */}
 				<div className="todaylist-header">
 					<h2 className="todaylist-title">Danh sách công việc</h2>
 					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-						<input
-							type="date"
-							value={selectedDate}
-							onChange={(e) => setSelectedDate(e.target.value)}
-							className="todaylist-date"
-						/>
 						<select
 							className="todaylist-dept-filter"
 							value={selectedDept}
@@ -464,6 +477,53 @@ const TodayListView = () => {
 								</option>
 							))}
 						</select>
+					</div>
+				</div>
+
+				{/* Bộ lọc ngày cho TodayList */}
+				<div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-100">
+					<div className="flex items-center gap-4">
+						<label className="text-sm font-semibold text-gray-700">Lọc TodayList:</label>
+						<div className="flex items-center gap-2">
+							<label className="text-sm text-gray-600">Từ ngày:</label>
+							<input
+								type="date"
+								value={startDate}
+								onChange={(e) => setStartDate(e.target.value)}
+								className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
+						<div className="flex items-center gap-2">
+							<label className="text-sm text-gray-600">Đến ngày:</label>
+							<input
+								type="date"
+								value={endDate}
+								onChange={(e) => setEndDate(e.target.value)}
+								className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							/>
+						</div>
+						<button
+							onClick={() => {
+								const today = new Date().toISOString().split('T')[0];
+								setStartDate(today);
+								setEndDate(today);
+							}}
+							className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+						>
+							Hôm nay
+						</button>
+						<button
+							onClick={() => {
+								const today = new Date();
+								const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+								const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+								setStartDate(firstDay.toISOString().split('T')[0]);
+								setEndDate(lastDay.toISOString().split('T')[0]);
+							}}
+							className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors"
+						>
+							Tháng này
+						</button>
 					</div>
 				</div>
 

@@ -1,7 +1,7 @@
 /* ===== Sidebar layout ===== */
 .sidebar {
   width: 220px;
-  background: #fff;
+  background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
 /* Logo */
 .sidebar-logo {
   padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #ffffff;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut } from 'lucide-react';
+import { LayoutDashboard, SquareCheckBig, ListTodo, MessageCircle, Target, Store, BarChart, User, LogOut } from 'lucide-react';
 import Logo from '../../Assets/logo.png';
 import './Sidebar.css';
 
@@ -33,13 +33,13 @@ const Sidebar = ({ activeNav, setActiveNav, onLogout, user }) => {
 
   // Thêm item mới vào danh sách menu:
   const menuItems = [
-    { name: 'DASHBOARD', icon: '📊' },
-    { name: 'OKRS', icon: '🎯' },
-    { name: 'CHECK-IN', icon: '✅' },
-    { name: 'TODAYLIST', icon: '📝' },
-    { name: 'CFRS', icon: '💬' },
-    { name: 'STORE', icon: '🎁' },
-    { name: 'REPORT', icon: '📈' }
+    { name: 'DASHBOARD', icon: <LayoutDashboard /> },
+    { name: 'OKRS', icon: <Target /> },
+    { name: 'CHECK-IN', icon: <SquareCheckBig /> },
+    { name: 'TODAYLIST', icon: <ListTodo /> },
+    { name: 'CFRS', icon: <MessageCircle /> },
+    { name: 'STORE', icon: <Store /> },
+    { name: 'REPORT', icon: <BarChart /> }
   ];
 
   return (

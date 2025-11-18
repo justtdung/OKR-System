@@ -102,9 +102,6 @@ const Checkin = () => {
       const data = await res.json();
       console.log("=== ALL OKRS FROM API ===");
       console.log("Total OKRs:", data.length);
-      data.forEach(okr => {
-        console.log(`OKR ${okr.id}: "${okr.objective}" - o_relevant: ${okr.o_relevant} (type: ${typeof okr.o_relevant})`);
-      });
       
       // normalize status - đảm bảo có giá trị mặc định
       const normalized = data.map(o => ({
@@ -112,26 +109,27 @@ const Checkin = () => {
         status: o.status || 'not_checked'
       }));
       
-      // Store ALL OKRs (including children)
-      setAllOkrs(normalized);
+      // ✅ CHỈ LẤY CÁC OKR ĐÃ DUYỆT
+      const approvedOkrs = normalized.filter(o => o.okr_status === 'Đã duyệt');
+      console.log("Approved OKRs:", approvedOkrs.length);
       
-      // Chỉ hiển thị OKR cấp cao (không có o_relevant hoặc o_relevant là null/0)
-      const topLevelOkrs = normalized.filter(o => !o.o_relevant || o.o_relevant === null || o.o_relevant === 0);
-      console.log("Top level OKRs:", topLevelOkrs.length);
-      topLevelOkrs.forEach(okr => {
-        console.log(`  - ${okr.id}: ${okr.objective}`);
-      });
+      // Store ALL approved OKRs (including children)
+      setAllOkrs(approvedOkrs);
+      
+      // Chỉ hiển thị OKR cấp cao đã duyệt (không có o_relevant hoặc o_relevant là null/0)
+      const topLevelOkrs = approvedOkrs.filter(o => !o.o_relevant || o.o_relevant === null || o.o_relevant === 0);
+      console.log("Top level approved OKRs:", topLevelOkrs.length);
       setOkrs(topLevelOkrs);
 
-      // Check which OKRs have children
+      // Check which OKRs have children (trong số các OKR đã duyệt)
       const childrenMap = {};
       topLevelOkrs.forEach(okr => {
-        const children = normalized.filter(o => {
+        const children = approvedOkrs.filter(o => {
           // So sánh cả string và number
           return o.o_relevant && (o.o_relevant === okr.id || parseInt(o.o_relevant) === okr.id);
         });
         childrenMap[okr.id] = children.length > 0;
-        console.log(`OKR ${okr.id} (${okr.objective}) has ${children.length} children:`, children.map(c => c.objective));
+        console.log(`OKR ${okr.id} (${okr.objective}) has ${children.length} approved children`);
       });
       setHasChildrenMap(childrenMap);
 
@@ -144,10 +142,10 @@ const Checkin = () => {
     }
   };
 
-  // Fetch child OKRs
+  // Fetch child OKRs - CHỈ LẤY CHILD ĐÃ DUYỆT
   const fetchChildOkrs = async (parentId) => {
     try {
-      console.log("=== FETCHING CHILDREN FOR PARENT ===", parentId);
+      console.log("=== FETCHING APPROVED CHILDREN FOR PARENT ===", parentId);
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -161,16 +159,18 @@ const Checkin = () => {
         status: o.status || 'not_checked'
       }));
       
-      // Lọc các OKR có o_relevant = parentId (so sánh cả string và number)
+      // ✅ Lọc các OKR có o_relevant = parentId VÀ đã duyệt
       const children = normalized.filter(o => {
-        const match = o.o_relevant && (o.o_relevant === parentId || parseInt(o.o_relevant) === parentId);
+        const match = o.o_relevant && 
+                     (o.o_relevant === parentId || parseInt(o.o_relevant) === parentId) &&
+                     o.okr_status === 'Đã duyệt'; // CHỈ LẤY ĐÃ DUYỆT
         if (match) {
-          console.log(`  ✅ Found child: ${o.id} "${o.objective}" with o_relevant=${o.o_relevant}`);
+          console.log(`  ✅ Found approved child: ${o.id} "${o.objective}" with o_relevant=${o.o_relevant}`);
         }
         return match;
       });
       
-      console.log(`Total children found for parent ${parentId}:`, children.length);
+      console.log(`Total approved children found for parent ${parentId}:`, children.length);
       return children;
     } catch (err) {
       console.error('Error fetching child OKRs:', err);
@@ -538,10 +538,11 @@ const Checkin = () => {
           status: o.status || 'not_checked'
         }));
 
-        // Tìm tất cả OKR con thuộc về người được chọn
+        // ✅ Tìm tất cả OKR con ĐÃ DUYỆT thuộc về người được chọn
         const childOkrsOfSelectedOwner = normalized.filter(o => 
           o.o_relevant && 
-          o.creator?.fullname === selectedOwner
+          o.creator?.fullname === selectedOwner &&
+          o.okr_status === 'Đã duyệt' // CHỈ LẤY ĐÃ DUYỆT
         );
 
         if (childOkrsOfSelectedOwner.length === 0) return;

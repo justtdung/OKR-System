@@ -12,6 +12,29 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
   const [duration, setDuration] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [comments, setComments] = useState('');
+  const [okrId, setOkrId] = useState(''); // Thêm state cho OKR
+  const [myOkrs, setMyOkrs] = useState([]); // Thêm state cho danh sách OKR
+
+  // Fetch danh sách OKR của user khi modal mở
+  useEffect(() => {
+    if (show && !readOnly) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetch('http://localhost:5000/api/okrs/my-okrs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log('My OKRs:', data);
+            setMyOkrs(Array.isArray(data) ? data : []);
+          })
+          .catch(err => {
+            console.error('Failed to fetch my OKRs:', err);
+            setMyOkrs([]);
+          });
+      }
+    }
+  }, [show, readOnly]);
 
   useEffect(() => {
     if (show) {
@@ -28,7 +51,7 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
           return '';
         };
 
-        setTitle(initialData.title || '');
+        setTitle(initialData.title || initialData.task_name || '');
         setDepartment(initialData.department ?? initialData.department_id ?? initialData.task_department_id ?? '');
         setPriority(initialData.priority || 'Trung bình');
         setStatus(initialData.status || 'Chưa xử lý');
@@ -37,6 +60,8 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
         setDuration(initialData.duration || initialData.estimate_time || '');
         setAttachments(initialData.attachments || []);
         setComments(initialData.comments || '');
+        // SỬA: Đọc okr_id từ initialData (có thể là okr_id hoặc okrId)
+        setOkrId(initialData.okr_id || initialData.okrId || '');
       } else {
         setTitle(initialTitle || '');
         setDepartment('');
@@ -47,6 +72,7 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
         setDuration('');
         setAttachments([]);
         setComments('');
+        setOkrId('');
       }
     }
   }, [show, initialTitle, mode, initialData]);
@@ -69,6 +95,8 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
       alert('Vui lòng nhập tiêu đề');
       return;
     }
+    
+    // ✅ LUÔN GỬI okr_id (convert string to int hoặc null)
     const taskData = {
       title: title.trim(),
       department,
@@ -77,16 +105,26 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
       description,
       deadline,
       duration,
-      attachments, // note: these are local File wrappers; upload handling can be added later
-      comments
+      attachments,
+      comments,
+      okr_id: okrId === '' ? null : (okrId ? parseInt(okrId, 10) : null) // CONVERT TO INT
     };
+    
+    // ✅ THÊM LOG ĐỂ DEBUG
+    console.log('=== TASK DATA BEFORE SEND ===');
+    console.log('Mode:', mode);
+    console.log('okrId state:', okrId, 'type:', typeof okrId);
+    console.log('taskData.okr_id:', taskData.okr_id, 'type:', typeof taskData.okr_id);
+    console.log('Full taskData:', JSON.stringify(taskData, null, 2));
+    
     if (readOnly) {
-      // phòng vệ: nếu modal chỉ đọc thì không gửi update/create
       onClose && onClose();
       return;
     }
     if (mode === 'edit' && initialData && onUpdate) {
-      onUpdate(initialData.id, taskData);
+      // ✅ Gửi task_id và taskData
+      console.log('Calling onUpdate with id:', initialData.task_id || initialData.id);
+      onUpdate(initialData.task_id || initialData.id, taskData);
     } else {
       onCreate && onCreate(taskData);
     }
@@ -112,6 +150,16 @@ const CreateTodayList = ({ show, onClose, onCreate, onUpdate, departments = [], 
             {Array.isArray(departments) && departments.map(d => (
               <option key={d.department_id ?? d.id ?? d.department_name} value={d.department_id ?? d.id ?? d.department_name}>
                 {d.department_name ?? d.name}
+              </option>
+            ))}
+          </select>
+
+          <label>Liên kết OKR</label>
+          <select value={okrId} onChange={e => setOkrId(e.target.value)} disabled={readOnly}>
+            <option value="">-- Chọn OKR (tùy chọn) --</option>
+            {myOkrs.map(okr => (
+              <option key={okr.okr_id} value={okr.okr_id}>
+                {okr.objective} ({okr.type} - {okr.cycle})
               </option>
             ))}
           </select>

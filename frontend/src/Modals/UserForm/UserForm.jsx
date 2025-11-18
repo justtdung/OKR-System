@@ -310,7 +310,6 @@ const UserForm = ({ user, departments, onSubmit, onBack }) => {
               <option value="">--- Chọn chức vụ ---</option>
               <option value="Giám đốc">Giám đốc</option>
               <option value="Trưởng phòng">Trưởng phòng</option>
-              <option value="Leader">Leader</option>
               <option value="Nhân viên">Nhân viên</option>
             </select>
             {errors.role && <span className="error-message">{errors.role}</span>}

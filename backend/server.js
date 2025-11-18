@@ -568,11 +568,13 @@ app.get("/api/todaylist/:id", (req, res) => {
     SELECT t.*,
            u.user_id AS creator_user_id, u.fullname AS creator_name, u.avatar AS creator_avatar,
            u.department_id AS creator_department_id, d.department_name AS creator_department_name,
-           td.department_id AS task_department_id, td.department_name AS task_department_name
+           td.department_id AS task_department_id, td.department_name AS task_department_name,
+           o.okr_id AS linked_okr_id, o.objective AS linked_okr_objective
     FROM TodayList t
     LEFT JOIN users u ON t.user_id = u.user_id
     LEFT JOIN departments d ON u.department_id = d.department_id
     LEFT JOIN departments td ON t.department_id = td.department_id
+    LEFT JOIN okrs o ON t.okr_id = o.okr_id
     WHERE t.task_id = ?
     LIMIT 1
   `;
@@ -586,6 +588,8 @@ app.get("/api/todaylist/:id", (req, res) => {
     const avatarUrl = r.creator_avatar ? `http://localhost:${PORT}/uploads/${r.creator_avatar}` : null;
     const out = {
       ...r,
+      okr_id: r.okr_id || null, // ✅ Đảm bảo trả về okr_id
+      linked_okr_objective: r.linked_okr_objective || null,
       creator_avatarUrl: avatarUrl,
       creator: {
         user_id: r.creator_user_id || null,
@@ -627,18 +631,18 @@ app.post("/api/todaylist", (req, res) => {
   const priority = body.priority || null;
   const status = body.status || null;
   const description = body.description || body.desc || null;
-  // normalize incoming deadline to MySQL DATETIME string (or null)
   const rawDeadline = body.deadline ?? null;
   const deadline = normalizeDeadline(rawDeadline);
   const duration = body.duration || body.estimate_time || body.estimateTime || null;
   const attachments = body.attachments || body.files || null;
   const comments = body.comments || body.Comment || null;
   const attachStr = attachments && attachments.length ? JSON.stringify(attachments) : null;
+  const okrId = body.okr_id || body.okrId ? parseInt(body.okr_id || body.okrId) : null; // Thêm okr_id
 
   db.query(
-    `INSERT INTO TodayList (user_id, department_id, task_name, description, status, priority, deadline, estimate_time, attachments, comments, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [userId, depId, title, description, status, priority, deadline || null, duration || null, attachStr, comments || null],
+    `INSERT INTO TodayList (user_id, department_id, task_name, description, status, priority, deadline, estimate_time, attachments, comments, okr_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [userId, depId, title, description, status, priority, deadline || null, duration || null, attachStr, comments || null, okrId],
     (err, result) => {
       if (err) {
         console.error("❌ Insert TodayList error:", err);
@@ -685,8 +689,8 @@ app.put("/api/todaylist/:id", (req, res) => {
   const id = parseInt(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
-  // debug
-  console.debug('PUT /api/todaylist body:', req.body);
+  // debug - THÊM LOG ĐỂ XEM GIÁ TRỊ okr_id
+  console.debug('PUT /api/todaylist/:id - Full body:', JSON.stringify(req.body, null, 2));
 
   const body = req.body || {};
   const title = body.title ?? body.task_name ?? body.taskName;
@@ -704,6 +708,12 @@ app.put("/api/todaylist/:id", (req, res) => {
   const attachments = Object.prototype.hasOwnProperty.call(body, 'attachments') ? body.attachments : undefined;
   const comments = Object.prototype.hasOwnProperty.call(body, 'comments') ? body.comments : undefined;
   const attachStr = (attachments !== undefined && attachments && attachments.length) ? JSON.stringify(attachments) : (attachments === null ? null : undefined);
+  const okrId = Object.prototype.hasOwnProperty.call(body, 'okr_id') || Object.prototype.hasOwnProperty.call(body, 'okrId')
+    ? (body.okr_id ?? body.okrId) 
+    : undefined;
+
+  // THÊM LOG ĐỂ XEM GIÁ TRỊ okrId SAU KHI XỬ LÝ
+  console.debug('>>> okrId value:', okrId, 'type:', typeof okrId);
 
   // build dynamic SET clauses and params only for provided fields
   const setParts = [];
@@ -725,11 +735,21 @@ app.put("/api/todaylist/:id", (req, res) => {
   if (estimate_time !== undefined) { setParts.push('estimate_time = ?'); params.push(estimate_time); }
   if (attachStr !== undefined) { setParts.push('attachments = ?'); params.push(attachStr); }
   if (comments !== undefined) { setParts.push('comments = ?'); params.push(comments); }
+  if (okrId !== undefined) { 
+    const val = okrId === '' || okrId === null ? null : parseInt(okrId);
+    console.debug('>>> okr_id will be updated to:', val); // THÊM LOG
+    setParts.push('okr_id = ?'); 
+    params.push(isNaN(val) ? null : val); 
+  }
 
   if (setParts.length === 0) return res.status(400).json({ message: "No updatable fields provided" });
 
   const sql = `UPDATE TodayList SET ${setParts.join(', ')} WHERE task_id = ?`;
   params.push(id);
+
+  // THÊM LOG ĐỂ XEM SQL CUỐI CÙNG
+  console.debug('>>> Final UPDATE SQL:', sql);
+  console.debug('>>> Final params:', params);
 
   db.query(sql, params, (err, result) => {
     if (err) {
@@ -875,8 +895,8 @@ app.post("/api/okrs", (req, res) => {
     const sql = `
       INSERT INTO okrs (
         type, cycle, o_relevant, objective, key_results, target, unit, 
-        link_plans, link_results, kr_relevant, o_cross, display, department_id, user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        link_plans, link_results, kr_relevant, o_cross, display, department_id, user_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Chưa duyệt')
     `;
     
     const params = [
@@ -919,6 +939,83 @@ app.post("/api/okrs", (req, res) => {
   }
 });
 
+// API duyệt OKR - chỉ cấp trên mới được duyệt
+app.put("/api/okrs/:id/approve", (req, res) => {
+  const okrId = parseInt(req.params.id);
+  if (!okrId) {
+    return res.status(400).json({ message: "Invalid OKR ID" });
+  }
+
+  console.log("=== DEBUG APPROVE OKR API ===");
+  console.log("OKR ID:", okrId);
+
+  // Lấy user_id từ token
+  let userId = null;
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length === 2 && parts[0] === "Bearer") {
+    try {
+      const payload = jwt.verify(parts[1], "secret_key");
+      userId = payload.id;
+      console.log("✅ Approver User ID from token:", userId);
+    } catch (e) {
+      console.warn("❌ Invalid token:", e.message);
+      return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+  } else {
+    console.warn("❌ No authorization header found");
+    return res.status(401).json({ message: "Cần đăng nhập để duyệt OKR" });
+  }
+
+  // Lấy thông tin OKR và người tạo
+  const checkSql = `
+    SELECT o.user_id AS okr_creator_id, u.superior
+    FROM okrs o
+    LEFT JOIN users u ON o.user_id = u.user_id
+    WHERE o.okr_id = ?
+  `;
+
+  db.query(checkSql, [okrId], (err, result) => {
+    if (err) {
+      console.error("❌ Check OKR error:", err);
+      return res.status(500).json({ message: "Database error: " + err.message });
+    }
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "OKR không tồn tại" });
+    }
+
+    const okrCreatorId = result[0].okr_creator_id;
+    const creatorSuperiorId = result[0].superior;
+
+    console.log("OKR Creator ID:", okrCreatorId);
+    console.log("Creator's Superior ID:", creatorSuperiorId);
+    console.log("Current User ID:", userId);
+
+    // Kiểm tra quyền: chỉ cấp trên mới được duyệt
+    if (userId !== creatorSuperiorId) {
+      return res.status(403).json({ message: "Chỉ cấp trên mới có quyền duyệt OKR này" });
+    }
+
+    // Cập nhật trạng thái thành "Đã duyệt"
+    const updateSql = "UPDATE okrs SET status = 'Đã duyệt' WHERE okr_id = ?";
+    
+    db.query(updateSql, [okrId], (updateErr, updateResult) => {
+      if (updateErr) {
+        console.error("❌ Update OKR status error:", updateErr);
+        return res.status(500).json({ message: "Failed to approve OKR: " + updateErr.message });
+      }
+
+      console.log("✅ OKR approved successfully:", okrId, "by user:", userId);
+      res.json({ 
+        message: "Duyệt OKR thành công", 
+        okr_id: okrId,
+        status: "Đã duyệt"
+      });
+    });
+  });
+});
+
 // API lấy thống kê OKRs theo phòng ban - PHẢI ĐẶT TRƯỚC /api/okrs/:id VÀ /api/okrs/parent-okrs
 app.get("/api/okrs/statistics", (req, res) => {
   console.log("=== DEBUG OKR STATISTICS API ===");
@@ -931,22 +1028,42 @@ app.get("/api/okrs/statistics", (req, res) => {
 
   // Query chính - lấy thống kê cơ bản
   const sql = `
-    SELECT
+  SELECT
       d.department_id,
       d.department_name,
       COUNT(DISTINCT o.okr_id) AS total_okrs,
-      COUNT(DISTINCT CASE WHEN cf.okr_id IS NULL THEN o.okr_id END) AS not_checked_in,
-      COUNT(DISTINCT CASE WHEN cf.status = 'draft' THEN o.okr_id END) AS draft,
-      COUNT(DISTINCT CASE WHEN cf.status = 'checked' THEN o.okr_id END) AS completed,
-      ROUND(AVG(CASE WHEN cf.status='checked' THEN cf.progress_percent END),2) AS avg_progress
-    FROM departments d
-    INNER JOIN users u ON u.department_id = d.department_id
-    INNER JOIN okrs o ON o.user_id = u.user_id
-    LEFT JOIN checkin_form cf ON cf.okr_id = o.okr_id
-    WHERE cf.checkin_date BETWEEN ? AND ?
-    GROUP BY d.department_id, d.department_name
-    ORDER BY d.department_name ASC
-  `;
+
+      SUM(cs.okr_status = 'not checked') AS not_checked_in,
+      SUM(cs.okr_status = 'draft')       AS draft,
+      SUM(cs.okr_status = 'checked')     AS completed,
+
+      ROUND(AVG(
+          CASE 
+              WHEN cs.okr_status = 'checked' THEN cs.progress_percent
+              ELSE NULL
+          END
+      ), 2) AS avg_progress
+  FROM departments d
+  JOIN users u ON u.department_id = d.department_id
+  JOIN okrs o  ON o.user_id       = u.user_id
+
+  LEFT JOIN (
+      SELECT
+          okr_id,
+          CASE
+              WHEN SUM(status = 'checked')     > 0 THEN 'checked'
+              WHEN SUM(status = 'draft')       > 0 THEN 'draft'
+              WHEN SUM(status = 'not checked') > 0 THEN 'not checked'
+          END AS okr_status,
+          MAX(CASE WHEN status = 'checked' THEN progress_percent END) AS progress_percent
+      FROM checkin_form
+      WHERE checkin_date BETWEEN ? AND ?
+      GROUP BY okr_id
+  ) AS cs ON cs.okr_id = o.okr_id
+
+  GROUP BY d.department_id, d.department_name
+  ORDER BY d.department_name ASC;
+    `;
 
   // Query phụ - lấy chi tiết tiến độ theo khoảng
   const progressSql = `
@@ -1041,6 +1158,149 @@ app.get("/api/okrs/statistics", (req, res) => {
   });
 });
 
+// API lấy thống kê OKRs theo cá nhân - THÊM SAU /api/okrs/statistics
+app.get("/api/okrs/individual-statistics", (req, res) => {
+  console.log("=== DEBUG INDIVIDUAL OKR STATISTICS API ===");
+  console.log("Request query:", req.query);
+  
+  const startDate = req.query.start_date || '2025-10-01';
+  const endDate = req.query.end_date || '2025-11-30';
+
+  console.log("Using date range:", startDate, "to", endDate);
+
+  // Query thống kê theo số lượng OKR của từng cá nhân
+  const quantitySql = `
+    SELECT
+      u.user_id,
+      u.fullname,
+      d.department_name,
+      COUNT(DISTINCT o.okr_id) AS total_okrs,
+      SUM(cs.okr_status = 'not checked') AS not_checked_in,
+      SUM(cs.okr_status = 'draft')       AS draft,
+      SUM(cs.okr_status = 'checked')     AS completed,
+      ROUND(AVG(
+        CASE 
+          WHEN cs.okr_status = 'checked' THEN cs.progress_percent
+          ELSE NULL
+        END
+      ), 2) AS avg_progress
+    FROM users u
+    LEFT JOIN departments d ON u.department_id = d.department_id
+    LEFT JOIN okrs o ON o.user_id = u.user_id
+    LEFT JOIN (
+      SELECT
+        okr_id,
+        CASE
+          WHEN SUM(status = 'checked')     > 0 THEN 'checked'
+          WHEN SUM(status = 'draft')       > 0 THEN 'draft'
+          WHEN SUM(status = 'not checked') > 0 THEN 'not checked'
+        END AS okr_status,
+        MAX(CASE WHEN status = 'checked' THEN progress_percent END) AS progress_percent
+      FROM checkin_form
+      WHERE checkin_date BETWEEN ? AND ?
+      GROUP BY okr_id
+    ) AS cs ON cs.okr_id = o.okr_id
+    WHERE o.okr_id IS NOT NULL
+    GROUP BY u.user_id, u.fullname, d.department_name
+    HAVING total_okrs > 0
+    ORDER BY u.fullname ASC
+  `;
+
+  // Query thống kê theo tiến độ OKR của từng cá nhân
+  const progressSql = `
+    SELECT
+      u.user_id,
+      u.fullname,
+      d.department_name,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent = 0 OR cf.progress_percent IS NULL THEN o.okr_id END) AS progress_0,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 0 AND cf.progress_percent <= 40 THEN o.okr_id END) AS progress_1_40,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 40 AND cf.progress_percent <= 70 THEN o.okr_id END) AS progress_41_70,
+      COUNT(DISTINCT CASE WHEN cf.progress_percent > 70 THEN o.okr_id END) AS progress_70_plus
+    FROM users u
+    LEFT JOIN departments d ON u.department_id = d.department_id
+    INNER JOIN okrs o ON o.user_id = u.user_id
+    LEFT JOIN (
+      SELECT 
+        okr_id,
+        progress_percent,
+        ROW_NUMBER() OVER (PARTITION BY okr_id ORDER BY checkin_date DESC, created_at DESC) as rn
+      FROM checkin_form
+      WHERE checkin_date BETWEEN ? AND ?
+    ) cf ON cf.okr_id = o.okr_id AND cf.rn = 1
+    GROUP BY u.user_id, u.fullname, d.department_name
+    HAVING (progress_0 + progress_1_40 + progress_41_70 + progress_70_plus) > 0
+    ORDER BY u.fullname ASC
+  `;
+
+  console.log("Executing individual quantity SQL");
+
+  db.query(quantitySql, [startDate, endDate], (err, quantityResult) => {
+    if (err) {
+      console.error("❌ SQL Error:", err);
+      return res.status(500).json({ 
+        message: "Database error",
+        error: err.message
+      });
+    }
+
+    console.log("✅ Quantity query OK! Rows:", quantityResult ? quantityResult.length : 0);
+    
+    // Query tiến độ
+    db.query(progressSql, [startDate, endDate], (err2, progressResult) => {
+      if (err2) {
+        console.error("❌ Progress SQL Error:", err2);
+        return res.status(500).json({ 
+          message: "Database error",
+          error: err2.message
+        });
+      }
+
+      console.log("✅ Progress query OK! Rows:", progressResult ? progressResult.length : 0);
+
+      if (!quantityResult || quantityResult.length === 0) {
+        console.log("⚠️ No data - returning empty array");
+        return res.json({
+          individualTable: [],
+          individualProgress: [],
+          dateRange: { start: startDate, end: endDate },
+          message: "Không có dữ liệu cá nhân"
+        });
+      }
+      
+      const individualTable = quantityResult.map(row => ({
+        user_id: row.user_id,
+        fullname: row.fullname || 'N/A',
+        department_name: row.department_name || 'N/A',
+        total_okrs: parseInt(row.total_okrs) || 0,
+        not_checked_in: parseInt(row.not_checked_in) || 0,
+        draft: parseInt(row.draft) || 0,
+        completed: parseInt(row.completed) || 0,
+        avg_progress: parseFloat(row.avg_progress) || 0
+      }));
+
+      const individualProgress = (progressResult || []).map(row => ({
+        user_id: row.user_id,
+        fullname: row.fullname || 'N/A',
+        department_name: row.department_name || 'N/A',
+        progress_0: parseInt(row.progress_0) || 0,
+        progress_1_40: parseInt(row.progress_1_40) || 0,
+        progress_41_70: parseInt(row.progress_41_70) || 0,
+        progress_70_plus: parseInt(row.progress_70_plus) || 0
+      }));
+
+      console.log("Returning individual data:");
+      console.log("- individualTable:", individualTable.length, "rows");
+      console.log("- individualProgress:", individualProgress.length, "rows");
+
+      res.json({
+        individualTable: individualTable,
+        individualProgress: individualProgress,
+        dateRange: { start: startDate, end: endDate }
+      });
+    });
+  });
+});
+
 // API lấy thống kê điểm CFR theo user - PHẢI ĐẶT SAU /api/okrs/statistics
 app.get("/api/cfrs/statistics", (req, res) => {
   console.log("=== DEBUG CFR STATISTICS API ===");
@@ -1111,6 +1371,53 @@ app.get("/api/cfrs/statistics", (req, res) => {
   });
 });
 
+// ============= MY OKRs ROUTE - PHẢI ĐẶT TRƯỚC TẤT CẢ ROUTE CÓ :id =============
+// API lấy OKR của user hiện tại cho TodayList lookup - ĐẶT TRƯỚC /api/okrs/:id
+app.get("/api/okrs/my-okrs", (req, res) => {
+  console.log("=== GET MY OKRs FOR TODAYLIST ===");
+  
+  // Lấy user_id từ token
+  let userId = null;
+  const auth = req.headers.authorization || "";
+  const parts = auth.split(" ");
+  if (parts.length === 2 && parts[0] === "Bearer") {
+    try {
+      const payload = jwt.verify(parts[1], "secret_key");
+      userId = payload.id;
+      console.log("✅ User ID from token:", userId);
+    } catch (e) {
+      console.warn("❌ Invalid token:", e.message);
+      return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+  } else {
+    console.warn("❌ No authorization header found");
+    return res.status(401).json({ message: "Cần đăng nhập" });
+  }
+
+  // Lấy danh sách OKR của user (chỉ lấy OKR đang hiển thị)
+  // SỬA: Bỏ ORDER BY created_at vì cột không tồn tại, dùng okr_id thay thế
+  const sql = `
+    SELECT 
+      okr_id,
+      objective,
+      type,
+      cycle
+    FROM okrs
+    WHERE user_id = ? AND display = 1
+    ORDER BY okr_id DESC
+  `;
+
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      console.error("❌ Get my OKRs error:", err);
+      return res.status(500).json({ message: "Failed to fetch OKRs: " + err.message });
+    }
+
+    console.log("✅ Found", result.length, "OKRs for user", userId);
+    res.json(result || []);
+  });
+});
+
 // ============= STATISTICS ROUTE - PHẢI ĐẶT TRƯỚC TẤT CẢ ROUTE CÓ :id =============
 // API lấy danh sách OKRs (với thông tin check-in mới nhất)
 app.get("/api/okrs", (req, res) => {
@@ -1120,6 +1427,7 @@ app.get("/api/okrs", (req, res) => {
       u.user_id AS creator_user_id,
       u.fullname AS creator_name,
       u.avatar AS creator_avatar,
+      u.superior AS creator_superior_id,
       d.department_name AS department_name,
       cl.progress_percent AS latest_progress,
       cl.confidence_level AS latest_confidence,
@@ -1214,7 +1522,7 @@ app.get("/api/okrs", (req, res) => {
         objective: okr.objective,
         type: okr.type,
         cycle: okr.cycle,
-        o_relevant: okr.o_relevant || null, // Đảm bảo trả về o_relevant
+        o_relevant: okr.o_relevant || null,
         keyResultsCount: keyResultsCount,
         progress: progress,
         change: change,
@@ -1225,11 +1533,13 @@ app.get("/api/okrs", (req, res) => {
           avatar: okr.creator_avatar,
           avatarUrl: okr.creator_avatar 
             ? `http://localhost:${PORT}/uploads/${okr.creator_avatar}` 
-            : null
+            : null,
+          superior_id: okr.creator_superior_id
         },
         department_name: okr.department_name,
         display: okr.display,
         status: status,
+        okr_status: okr.status || 'Chưa duyệt', // Thêm trạng thái duyệt
         confidence: okr.confidence || confidenceText,
         latest_checkin_date: okr.latest_checkin_date,
         created_at: okr.created_at || new Date().toISOString()
@@ -1550,8 +1860,6 @@ app.put("/api/okrs/:id", (req, res) => {
         }
 
         console.log("✅ OKR updated successfully ID:", okrId, "by user:", userId);
-        console.log("Update result:", updateResult);
-        
         res.json({ 
           message: "OKR updated successfully", 
           okr_id: okrId,
