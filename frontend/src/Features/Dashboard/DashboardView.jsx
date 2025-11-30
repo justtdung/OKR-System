@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SummaryCard from '../../Components/SummaryCard';
 import { Calendar, CheckCircle, User } from 'lucide-react';
 
@@ -17,18 +17,15 @@ const DashboardView = () => {
   // State cho bộ lọc ngày (dùng chung cho cả OKRs và TodayList)
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    // Lấy ngày theo local timezone
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
   const [endDate, setEndDate] = useState(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [startDate, endDate]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -61,13 +58,25 @@ const DashboardView = () => {
     } finally {
       setLoading(false);
     }
+  }, [startDate, endDate]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Sửa lại hàm tạo Date từ chuỗi ngày để tránh lỗi timezone
+  const parseLocalDate = (dateStr) => {
+    // dateStr: 'YYYY-MM-DD'
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
   };
 
   const calculateOKRStats = (okrs) => {
     // Lọc OKRs theo khoảng thời gian
-    const start = new Date(startDate);
+    const start = parseLocalDate(startDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
+    const end = parseLocalDate(endDate);
     end.setHours(23, 59, 59, 999);
 
     const filteredOkrs = okrs.filter(okr => {
@@ -131,9 +140,9 @@ const DashboardView = () => {
 
   const calculateSummaryCards = (okrs) => {
     // Lọc OKRs theo khoảng thời gian
-    const start = new Date(startDate);
+    const start = parseLocalDate(startDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
+    const end = parseLocalDate(endDate);
     end.setHours(23, 59, 59, 999);
 
     const filteredOkrs = okrs.filter(okr => {
@@ -172,10 +181,9 @@ const DashboardView = () => {
   };
 
   const calculateTodayListStats = (todayList, users) => {
-    // Chuyển đổi startDate và endDate sang Date objects
-    const start = new Date(startDate);
+    const start = parseLocalDate(startDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
+    const end = parseLocalDate(endDate);
     end.setHours(23, 59, 59, 999);
     
     // Lọc tasks trong khoảng thời gian được chọn
@@ -297,8 +305,9 @@ const DashboardView = () => {
               const today = new Date();
               const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
               const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-              setStartDate(firstDay.toISOString().split('T')[0]);
-              setEndDate(lastDay.toISOString().split('T')[0]);
+              // Lấy ngày theo local timezone
+              setStartDate(`${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`);
+              setEndDate(`${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`);
             }}
             className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors"
           >

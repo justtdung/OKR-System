@@ -142,17 +142,7 @@ const pdfStyles = StyleSheet.create({
     borderRightStyle: 'solid',
     borderRightColor: '#000',
   },
-  tableCellStt: {
-    width: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    textAlign: 'center',
-    fontSize: 10,
-    fontWeight: 400,
-    borderRightWidth: 1,
-    borderRightStyle: 'solid',
-    borderRightColor: '#000',
-  },
+
   tableCellLast: {
     borderRightWidth: 0,
   },
@@ -241,7 +231,6 @@ const OKRsPDFDocument = ({ data, startDate, endDate, title = "BÁO CÁO HIỆU S
         {/* Table */}
         <View style={pdfStyles.table}>
           <View style={[pdfStyles.tableRow, pdfStyles.tableHeader]}>
-            <Text style={pdfStyles.tableCellStt}>STT</Text>
             <Text style={pdfStyles.tableCellWide}>Phòng ban</Text>
             <Text style={pdfStyles.tableCell}>Tổng OKR</Text>
             <Text style={pdfStyles.tableCell}>Chưa check-in</Text>
@@ -252,7 +241,6 @@ const OKRsPDFDocument = ({ data, startDate, endDate, title = "BÁO CÁO HIỆU S
           
           {data.map((dept, index) => (
             <View key={index} style={[pdfStyles.tableRow, index === data.length - 1 && pdfStyles.tableRowLast]}>
-              <Text style={pdfStyles.tableCellStt}>{index + 1}</Text>
               <Text style={pdfStyles.tableCellWide}>{dept.department_name || 'N/A'}</Text>
               <Text style={pdfStyles.tableCell}>{dept.total_okrs || 0}</Text>
               <Text style={pdfStyles.tableCell}>{dept.not_checked_in || 0}</Text>
@@ -287,8 +275,8 @@ const OKRsPDFDocument = ({ data, startDate, endDate, title = "BÁO CÁO HIỆU S
   );
 };
 
-// CFRs PDF Document
-const CFRsPDFDocument = ({ data, startDate, endDate }) => {
+// Points PDF Document
+const PointsPDFDocument = ({ data, startDate, endDate }) => {
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('vi-VN');
@@ -316,7 +304,7 @@ const CFRsPDFDocument = ({ data, startDate, endDate }) => {
 
         {/* Title */}
         <View style={pdfStyles.titleSection}>
-          <Text style={pdfStyles.mainTitle}>BÁO CÁO HIỆU SUẤT CFRs</Text>
+          <Text style={pdfStyles.mainTitle}>BÁO CÁO ĐIỂM NGƯỜI DÙNG</Text>
           <Text style={pdfStyles.subtitle}>
             Từ ngày {formatDate(startDate)} đến hết ngày {formatDate(endDate)}
           </Text>
@@ -325,7 +313,6 @@ const CFRsPDFDocument = ({ data, startDate, endDate }) => {
         {/* Table */}
         <View style={pdfStyles.table}>
           <View style={[pdfStyles.tableRow, pdfStyles.tableHeader]}>
-            <Text style={pdfStyles.tableCellStt}>STT</Text>
             <Text style={pdfStyles.tableCellWide}>Phòng ban</Text>
             <Text style={pdfStyles.tableCellWide}>Nhân viên</Text>
             <Text style={pdfStyles.tableCell}>OKR</Text>
@@ -337,7 +324,6 @@ const CFRsPDFDocument = ({ data, startDate, endDate }) => {
           
           {data.map((row, index) => (
             <View key={index} style={[pdfStyles.tableRow, index === data.length - 1 && pdfStyles.tableRowLast]}>
-              <Text style={pdfStyles.tableCellStt}>{index + 1}</Text>
               <Text style={pdfStyles.tableCellWide}>{row.department_name}</Text>
               <Text style={pdfStyles.tableCellWide}>{row.fullname}</Text>
               <Text style={pdfStyles.tableCell}>{row.okr_points}</Text>
@@ -380,7 +366,7 @@ export default function Report() {
   const [showIndividualTable, setShowIndividualTable] = useState(false);
   const [departmentTableData, setDepartmentTableData] = useState([]);
   const [individualTableData, setIndividualTableData] = useState([]); // THÊM
-  const [cfrTableData, setCfrTableData] = useState([]);
+  const [pointsTableData, setPointsTableData] = useState([]);
   const [departmentStats, setDepartmentStats] = useState([]);
   const [individualStats, setIndividualStats] = useState({
     progress_0: 0,
@@ -469,9 +455,9 @@ export default function Report() {
           setIndividualTableData([]);
           setIndividualStatsData([]);
         }
-      } else if (activeTab === 'CFRs') {
-        const url = `${API_URL}/api/cfrs/statistics?start_date=${startDate}&end_date=${endDate}`;
-        console.log('Fetching CFR statistics from:', url);
+      } else if (activeTab === 'Points') {
+        const url = `${API_URL}/api/points/statistics?start_date=${startDate}&end_date=${endDate}`;
+        console.log('Fetching Points statistics from:', url);
         
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
@@ -479,19 +465,19 @@ export default function Report() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('CFR statistics data received:', data);
-          setCfrTableData(data.cfrTable || []);
+          console.log('Points statistics data received:', data);
+          setPointsTableData(data.pointsTable || []);
         } else {
           const errorData = await response.json().catch(() => ({}));
-          console.error('Failed to fetch CFR statistics:', response.status, errorData);
-          setCfrTableData([]);
+          console.error('Failed to fetch Points statistics:', response.status, errorData);
+          setPointsTableData([]);
         }
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
       setDepartmentTableData([]);
       setIndividualTableData([]);
-      setCfrTableData([]);
+      setPointsTableData([]);
       setDepartmentStats([]);
       setIndividualStats({
         progress_0: 0,
@@ -817,8 +803,8 @@ export default function Report() {
         };
       }
 
-      // Style cho chữ ký bên trái (Giám đốc)
-      const directorCell = XLSX.utils.encode_cell({ r: signatureRow + 1, c: 0 });
+      // Style cho chữ ký bên trái (Giám đốc) - ngang hàng với bên phải
+      const directorCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 0 });
       if (ws[directorCell]) {
         ws[directorCell].s = {
           font: { bold: true, sz: 11 },
@@ -826,8 +812,17 @@ export default function Report() {
         };
       }
 
+      // Style cho dòng "(Ký và ghi rõ họ tên)" bên trái
+      const directorSubCell = XLSX.utils.encode_cell({ r: signatureRow + 3, c: 0 });
+      if (ws[directorSubCell]) {
+        ws[directorSubCell].s = {
+          font: { sz: 9 },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+
       // Style cho chữ ký bên phải (Người lập báo cáo)
-      const reporterCell = XLSX.utils.encode_cell({ r: signatureRow + 1, c: 6 });
+      const reporterCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 6 });
       if (ws[reporterCell]) {
         ws[reporterCell].s = {
           font: { sz: 10 },
@@ -835,10 +830,18 @@ export default function Report() {
         };
       }
 
-      const reporterLabelCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 6 });
+      const reporterLabelCell = XLSX.utils.encode_cell({ r: signatureRow + 3, c: 6 });
       if (ws[reporterLabelCell]) {
         ws[reporterLabelCell].s = {
           font: { bold: true, sz: 11 },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+
+      const reporterSubCell = XLSX.utils.encode_cell({ r: signatureRow + 4, c: 6 });
+      if (ws[reporterSubCell]) {
+        ws[reporterSubCell].s = {
+          font: { sz: 9 },
           alignment: { horizontal: 'center', vertical: 'center' }
         };
       }
@@ -857,7 +860,6 @@ export default function Report() {
 
         // Thêm header bảng
         XLSX.utils.sheet_add_aoa(ws, [[
-          'STT',
           'Phòng ban',
           'Tổng OKR đã tạo',
           'Tổng OKR chưa check-in',
@@ -868,7 +870,6 @@ export default function Report() {
 
         // Thêm dữ liệu
         const data = departmentTableData.map((dept, index) => [
-          index + 1,
           dept.department_name || 'N/A',
           dept.total_okrs || 0,
           dept.not_checked_in || 0,
@@ -883,7 +884,7 @@ export default function Report() {
 
         // Set column widths
         ws['!cols'] = [
-          { wch: 5 }, { wch: 25 }, { wch: 18 }, 
+          { wch: 22 }, { wch: 25 }, { wch: 18 }, 
           { wch: 22 }, { wch: 26 }, { wch: 24 }, { wch: 22 }
         ];
 
@@ -904,8 +905,6 @@ export default function Report() {
         );
 
         XLSX.utils.sheet_add_aoa(ws, [[
-          'STT',
-          'Phòng ban',
           'Nhân viên',
           'Tổng OKR đã tạo',
           'Tổng OKR chưa check-in',
@@ -915,8 +914,6 @@ export default function Report() {
         ]], { origin: `A${startRow}` });
 
         const data = individualTableData.map((person, index) => [
-          index + 1,
-          person.department_name || 'N/A',
           person.fullname || 'N/A',
           person.total_okrs || 0,
           person.not_checked_in || 0,
@@ -930,7 +927,7 @@ export default function Report() {
         addTableBorders(ws, startRow - 1, startRow + data.length, 8);
 
         ws['!cols'] = [
-          { wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 18 }, 
+          { wch: 22 }, { wch: 20 }, { wch: 25 }, { wch: 18 }, 
           { wch: 22 }, { wch: 26 }, { wch: 24 }, { wch: 22 }
         ];
 
@@ -949,7 +946,6 @@ export default function Report() {
         );
 
         XLSX.utils.sheet_add_aoa(ws, [[
-          'STT',
           'Phòng ban',
           'OKRs tiến độ 0%',
           'OKRs tiến độ 1-40%',
@@ -963,7 +959,6 @@ export default function Report() {
           const avgProgress = matchedDept ? matchedDept.avg_progress : 0;
           
           return [
-            index + 1,
             dept.department_name || 'N/A',
             dept.progress_0 || 0,
             dept.progress_1_40 || 0,
@@ -978,7 +973,7 @@ export default function Report() {
         addTableBorders(ws, startRow - 1, startRow + data.length, 7);
 
         ws['!cols'] = [
-          { wch: 5 }, { wch: 25 }, { wch: 18 }, 
+          { wch: 22 }, { wch: 25 }, { wch: 18 }, 
           { wch: 20 }, { wch: 22 }, { wch: 24 }, { wch: 22 }
         ];
 
@@ -997,8 +992,6 @@ export default function Report() {
         );
 
         XLSX.utils.sheet_add_aoa(ws, [[
-          'STT',
-          'Phòng ban',
           'Nhân viên',
           'OKRs tiến độ 0%',
           'OKRs tiến độ 1-40%',
@@ -1012,8 +1005,6 @@ export default function Report() {
           const avgProgress = matchedPerson ? matchedPerson.avg_progress : 0;
           
           return [
-            index + 1,
-            person.department_name || 'N/A',
             person.fullname || 'N/A',
             person.progress_0 || 0,
             person.progress_1_40 || 0,
@@ -1028,7 +1019,7 @@ export default function Report() {
         addTableBorders(ws, startRow - 1, startRow + data.length, 8);
 
         ws['!cols'] = [
-          { wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 18 }, 
+          { wch: 22 }, { wch: 20 }, { wch: 25 }, { wch: 18 }, 
           { wch: 20 }, { wch: 22 }, { wch: 24 }, { wch: 22 }
         ];
 
@@ -1047,8 +1038,8 @@ export default function Report() {
     XLSX.writeFile(wb, fileName);
   };
 
-  const exportCFRsToExcel = () => {
-    if (cfrTableData.length === 0) {
+  const exportPointsToExcel = () => {
+    if (pointsTableData.length === 0) {
       alert('Không có dữ liệu để xuất');
       return;
     }
@@ -1061,7 +1052,7 @@ export default function Report() {
       ['CÔNG TY CỔ PHẦN CÔNG NGHỆ ITG'],
       ['Tầng 14, Tòa nhà Lilama 10, phố Tố Hữu, phường Đại Mỗ, Hà Nội'],
       [],
-      ['BÁO CÁO HIỆU SUẤT CFRs'],
+      ['BÁO CÁO ĐIỂM NGƯỜI DÙNG'],
       [`Từ ngày ${new Date(startDate).toLocaleDateString('vi-VN')} đến hết ngày ${new Date(endDate).toLocaleDateString('vi-VN')}`],
       []
     ], { origin: 'A1' });
@@ -1095,7 +1086,6 @@ export default function Report() {
 
     // Header bảng
     XLSX.utils.sheet_add_aoa(ws, [[
-      'STT',
       'Phòng ban',
       'Nhân viên',
       'Điểm OKR',
@@ -1106,8 +1096,7 @@ export default function Report() {
     ]], { origin: `A${startRow}` });
 
     // Dữ liệu
-    const data = cfrTableData.map((row, index) => [
-      index + 1,
+    const data = pointsTableData.map((row, index) => [
       row.department_name,
       row.fullname,
       row.okr_points,
@@ -1144,7 +1133,7 @@ export default function Report() {
 
     // Column widths
     ws['!cols'] = [
-      { wch: 5 }, { wch: 25 }, { wch: 25 },
+      { wch: 22 }, { wch: 25 }, { wch: 25 },
       { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }
     ];
 
@@ -1168,8 +1157,8 @@ export default function Report() {
       { s: { r: signatureRow + 5, c: 0 }, e: { r: signatureRow + 5, c: 7 } }
     );
 
-    // Style cho chữ ký
-    const directorCell = XLSX.utils.encode_cell({ r: signatureRow + 1, c: 0 });
+    // Style cho chữ ký bên trái (Giám đốc)
+    const directorCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 0 });
     if (ws[directorCell]) {
       ws[directorCell].s = {
         font: { bold: true, sz: 11 },
@@ -1177,7 +1166,16 @@ export default function Report() {
       };
     }
 
-    const reporterCell = XLSX.utils.encode_cell({ r: signatureRow + 1, c: 7 });
+    const directorSubCell = XLSX.utils.encode_cell({ r: signatureRow + 3, c: 0 });
+    if (ws[directorSubCell]) {
+      ws[directorSubCell].s = {
+        font: { sz: 9 },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+    }
+
+    // Style cho chữ ký bên phải (Người lập báo cáo)
+    const reporterCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 7 });
     if (ws[reporterCell]) {
       ws[reporterCell].s = {
         font: { sz: 10 },
@@ -1185,7 +1183,7 @@ export default function Report() {
       };
     }
 
-    const reporterLabelCell = XLSX.utils.encode_cell({ r: signatureRow + 2, c: 7 });
+    const reporterLabelCell = XLSX.utils.encode_cell({ r: signatureRow + 3, c: 7 });
     if (ws[reporterLabelCell]) {
       ws[reporterLabelCell].s = {
         font: { bold: true, sz: 11 },
@@ -1193,18 +1191,26 @@ export default function Report() {
       };
     }
 
+    const reporterSubCell = XLSX.utils.encode_cell({ r: signatureRow + 4, c: 7 });
+    if (ws[reporterSubCell]) {
+      ws[reporterSubCell].s = {
+        font: { sz: 9 },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+    }
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo CFRs');
+    XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo điểm người dùng');
     
-    const fileName = `Bao_cao_CFRs_${startDate}_${endDate}.xlsx`;
+    const fileName = `Bao_cao_Diem_Nguoi_Dung_${startDate}_${endDate}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
   const handleExport = () => {
     if (activeTab === 'OKRs') {
       exportOKRsToExcel();
-    } else if (activeTab === 'CFRs') {
-      exportCFRsToExcel();
+    } else if (activeTab === 'Points') {
+      exportPointsToExcel();
     }
   };
 
@@ -1285,12 +1291,12 @@ export default function Report() {
           return;
         }
       } else {
-        // CFRs
-        if (cfrTableData.length === 0) {
+        // Points
+        if (pointsTableData.length === 0) {
           alert('Không có dữ liệu để xuất');
           return;
         }
-        doc = <CFRsPDFDocument data={cfrTableData} startDate={startDate} endDate={endDate} />;
+        doc = <PointsPDFDocument data={pointsTableData} startDate={startDate} endDate={endDate} />;
       }
 
       const blob = await pdf(doc).toBlob();
@@ -1315,17 +1321,17 @@ export default function Report() {
                     !showDepartmentTable && showIndividualTable ? 'ca_nhan' : 'tong_hop';
       return `Bao_cao_${type}_${scope}_${startDate}_${endDate}.pdf`;
     }
-    return `Bao_cao_CFRs_${startDate}_${endDate}.pdf`;
+    return `Bao_cao_Diem_Nguoi_Dung_${startDate}_${endDate}.pdf`;
   };
 
   return (
     <div className="report-container">
       <div className="report-tabs">
         <button
-          className={`tab-button ${activeTab === 'CFRs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('CFRs')}
+          className={`tab-button ${activeTab === 'Points' ? 'active' : ''}`}
+          onClick={() => setActiveTab('Points')}
         >
-          CFRs
+          Points
         </button>
         <button
           className={`tab-button ${activeTab === 'OKRs' ? 'active' : ''}`}
@@ -1336,7 +1342,7 @@ export default function Report() {
       </div>
 
       <div className="report-content">
-        <h2 className="report-title">Tiến độ {activeTab}</h2>
+        <h2 className="report-title">Thống kê {activeTab}</h2>
 
         <div className="report-filters">
           <div className="date-filter">
@@ -1413,7 +1419,7 @@ export default function Report() {
             </button>
 
             {((activeTab === 'OKRs' && departmentTableData.length > 0) || 
-              (activeTab === 'CFRs' && cfrTableData.length > 0)) && (
+              (activeTab === 'Points' && pointsTableData.length > 0)) && (
               <button
                 className="export-button pdf-button"
                 onClick={handleExportPDF}
@@ -1450,7 +1456,6 @@ export default function Report() {
                 <table className="report-table">
                   <thead>
                     <tr>
-                      <th>STT</th>
                       <th>Phòng ban</th>
                       <th>Tổng OKR đã tạo</th>
                       <th>Tổng OKR chưa check-in</th>
@@ -1463,7 +1468,6 @@ export default function Report() {
                     {departmentTableData.length > 0 ? (
                       departmentTableData.map((dept, index) => (
                         <tr key={index}>
-                          <td>{index + 1}</td>
                           <td>{dept.department_name || 'N/A'}</td>
                           <td>{dept.total_okrs || 0}</td>
                           <td>{dept.not_checked_in || 0}</td>
@@ -1487,7 +1491,6 @@ export default function Report() {
                 <table className="report-table">
                   <thead>
                     <tr>
-                      <th>STT</th>
                       <th>Phòng ban</th>
                       <th>OKRs tiến độ 0%</th>
                       <th>OKRs tiến độ 1-40%</th>
@@ -1504,7 +1507,6 @@ export default function Report() {
                         
                         return (
                           <tr key={index}>
-                            <td>{index + 1}</td>
                             <td>{dept.department_name || 'N/A'}</td>
                             <td>{dept.progress_0 || 0}</td>
                             <td>{dept.progress_1_40 || 0}</td>
@@ -1530,8 +1532,6 @@ export default function Report() {
                 <table className="report-table">
                   <thead>
                     <tr>
-                      <th>STT</th>
-                      <th>Phòng ban</th>
                       <th>Nhân viên</th>
                       <th>Tổng OKR đã tạo</th>
                       <th>Tổng OKR chưa check-in</th>
@@ -1544,8 +1544,6 @@ export default function Report() {
                     {individualTableData.length > 0 ? (
                       individualTableData.map((person, index) => (
                         <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td>{person.department_name || 'N/A'}</td>
                           <td>{person.fullname || 'N/A'}</td>
                           <td>{person.total_okrs || 0}</td>
                           <td>{person.not_checked_in || 0}</td>
@@ -1569,8 +1567,6 @@ export default function Report() {
                 <table className="report-table">
                   <thead>
                     <tr>
-                      <th>STT</th>
-                      <th>Phòng ban</th>
                       <th>Nhân viên</th>
                       <th>OKRs tiến độ 0%</th>
                       <th>OKRs tiến độ 1-40%</th>
@@ -1587,8 +1583,6 @@ export default function Report() {
                         
                         return (
                           <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{person.department_name || 'N/A'}</td>
                             <td>{person.fullname || 'N/A'}</td>
                             <td>{person.progress_0 || 0}</td>
                             <td>{person.progress_1_40 || 0}</td>
@@ -1675,10 +1669,10 @@ export default function Report() {
           </>
         )}
 
-        {/* Bảng tổng điểm CFRs */}
-        {activeTab === 'CFRs' && (
+        {/* Bảng tổng điểm Points */}
+        {activeTab === 'Points' && (
           <div className="report-table-container">
-            <table className="report-table cfr-table">
+            <table className="report-table points-table">
               <thead>
                 <tr>
                   <th>Phòng ban</th>
@@ -1691,8 +1685,8 @@ export default function Report() {
                 </tr>
               </thead>
               <tbody>
-                {cfrTableData.length > 0 ? (
-                  cfrTableData.map((row, index) => (
+                {pointsTableData.length > 0 ? (
+                  pointsTableData.map((row, index) => (
                     <tr key={index}>
                       <td className="department-cell">{row.department_name}</td>
                       <td className="employee-cell">{row.fullname}</td>
@@ -1755,7 +1749,6 @@ const OKRsProgressPDFDocument = ({ data, startDate, endDate, title = "BÁO CÁO 
         {/* Table */}
         <View style={pdfStyles.table}>
           <View style={[pdfStyles.tableRow, pdfStyles.tableHeader]}>
-            <Text style={pdfStyles.tableCellStt}>STT</Text>
             <Text style={pdfStyles.tableCellWide}>Phòng ban</Text>
             <Text style={pdfStyles.tableCell}>0%</Text>
             <Text style={pdfStyles.tableCell}>1-40%</Text>
@@ -1770,7 +1763,6 @@ const OKRsProgressPDFDocument = ({ data, startDate, endDate, title = "BÁO CÁO 
             
             return (
               <View key={index} style={[pdfStyles.tableRow, index === data.length - 1 && pdfStyles.tableRowLast]}>
-                <Text style={pdfStyles.tableCellStt}>{index + 1}</Text>
                 <Text style={pdfStyles.tableCellWide}>{dept.department_name || 'N/A'}</Text>
                 <Text style={pdfStyles.tableCell}>{dept.progress_0 || 0}</Text>
                 <Text style={pdfStyles.tableCell}>{dept.progress_1_40 || 0}</Text>
@@ -1841,7 +1833,6 @@ const OKRsIndividualPDFDocument = ({ data, startDate, endDate, title }) => {
 
         <View style={pdfStyles.table}>
           <View style={[pdfStyles.tableRow, pdfStyles.tableHeader]}>
-            <Text style={pdfStyles.tableCellStt}>STT</Text>
             <Text style={pdfStyles.tableCellWide}>Nhân viên</Text>
             <Text style={pdfStyles.tableCell}>Tổng OKR</Text>
             <Text style={pdfStyles.tableCell}>Chưa check-in</Text>
@@ -1852,7 +1843,6 @@ const OKRsIndividualPDFDocument = ({ data, startDate, endDate, title }) => {
           
           {data.map((person, index) => (
             <View key={index} style={[pdfStyles.tableRow, index === data.length - 1 && pdfStyles.tableRowLast]}>
-              <Text style={pdfStyles.tableCellStt}>{index + 1}</Text>
               <Text style={pdfStyles.tableCellWide}>{person.fullname || 'N/A'}</Text>
               <Text style={pdfStyles.tableCell}>{person.total_okrs || 0}</Text>
               <Text style={pdfStyles.tableCell}>{person.not_checked_in || 0}</Text>
@@ -1920,7 +1910,6 @@ const OKRsIndividualProgressPDFDocument = ({ data, startDate, endDate, title }) 
 
         <View style={pdfStyles.table}>
           <View style={[pdfStyles.tableRow, pdfStyles.tableHeader]}>
-            <Text style={pdfStyles.tableCellStt}>STT</Text>
             <Text style={pdfStyles.tableCellWide}>Nhân viên</Text>
             <Text style={pdfStyles.tableCell}>0%</Text>
             <Text style={pdfStyles.tableCell}>1-40%</Text>
@@ -1934,7 +1923,6 @@ const OKRsIndividualProgressPDFDocument = ({ data, startDate, endDate, title }) 
             
             return (
               <View key={index} style={[pdfStyles.tableRow, index === data.length - 1 && pdfStyles.tableRowLast]}>
-                <Text style={pdfStyles.tableCellStt}>{index + 1}</Text>
                 <Text style={pdfStyles.tableCellWide}>{person.fullname || 'N/A'}</Text>
                 <Text style={pdfStyles.tableCell}>{person.progress_0 || 0}</Text>
                 <Text style={pdfStyles.tableCell}>{person.progress_1_40 || 0}</Text>

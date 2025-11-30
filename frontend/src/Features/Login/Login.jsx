@@ -152,20 +152,6 @@ const Login = ({ onLogin }) => {
               />
               Ghi nhớ mật khẩu
             </label>
-            <button
-              type="button"
-              onClick={(e) => e.preventDefault()}
-              style={{
-                color: "#0b4d97",
-                textDecoration: "none",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              Quên mật khẩu?
-            </button>
           </div>
 
           {/* Submit button */}

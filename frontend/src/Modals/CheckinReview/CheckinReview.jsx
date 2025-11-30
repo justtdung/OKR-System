@@ -226,12 +226,12 @@ const CheckinReview = ({
             {mode === 'create' ? (
               <>
                 <CheckCircle size={20} color="#10b981" />
-                <span>Xác nhận Check-in</span>
+                <span>Review OKR</span>
               </>
             ) : (
               <>
                 <CheckCircle size={20} color="#3b82f6" />
-                <span>Kết quả Check-in</span>
+                <span>Kết quả Review OKR</span>
               </>
             )}
           </div>

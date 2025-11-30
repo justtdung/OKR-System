@@ -1203,7 +1203,7 @@ app.get("/api/okrs/individual-statistics", (req, res) => {
     WHERE o.okr_id IS NOT NULL
     GROUP BY u.user_id, u.fullname, d.department_name
     HAVING total_okrs > 0
-    ORDER BY u.fullname ASC
+    ORDER BY u.user_id ASC
   `;
 
   // Query thống kê theo tiến độ OKR của từng cá nhân
@@ -1229,7 +1229,7 @@ app.get("/api/okrs/individual-statistics", (req, res) => {
     ) cf ON cf.okr_id = o.okr_id AND cf.rn = 1
     GROUP BY u.user_id, u.fullname, d.department_name
     HAVING (progress_0 + progress_1_40 + progress_41_70 + progress_70_plus) > 0
-    ORDER BY u.fullname ASC
+    ORDER BY u.user_id ASC
   `;
 
   console.log("Executing individual quantity SQL");
@@ -1301,9 +1301,9 @@ app.get("/api/okrs/individual-statistics", (req, res) => {
   });
 });
 
-// API lấy thống kê điểm CFR theo user - PHẢI ĐẶT SAU /api/okrs/statistics
-app.get("/api/cfrs/statistics", (req, res) => {
-  console.log("=== DEBUG CFR STATISTICS API ===");
+// API lấy thống kê điểm Points theo user - PHẢI ĐẶT SAU /api/okrs/statistics
+app.get("/api/points/statistics", (req, res) => {
+  console.log("=== DEBUG Points STATISTICS API ===");
   console.log("Request query:", req.query);
   
   const startDate = req.query.start_date || '2025-10-01';
@@ -1323,7 +1323,7 @@ app.get("/api/cfrs/statistics", (req, res) => {
     FROM report_user_reward_points_day
     WHERE day_start BETWEEN ? AND ?
     GROUP BY user_id, fullname, department_id, department_name
-    ORDER BY SUM(total_reward_points) DESC
+    ORDER BY user_id ASC
   `;
 
   console.log("Executing SQL:", sql);
@@ -1344,7 +1344,7 @@ app.get("/api/cfrs/statistics", (req, res) => {
     if (!result || result.length === 0) {
       console.log("⚠️ No data - returning empty array");
       return res.json({
-        cfrTable: [],
+        pointsTable: [],
         dateRange: { start: startDate, end: endDate },
         message: "Không có dữ liệu trong khoảng thời gian này"
       });
@@ -1352,7 +1352,7 @@ app.get("/api/cfrs/statistics", (req, res) => {
     
     console.log("First row:", result[0]);
     
-    const cfrTable = result.map(row => ({
+    const pointsTable = result.map(row => ({
       department_name: row['Phòng ban'] || 'N/A',
       fullname: row['Nhân viên'] || 'N/A',
       okr_points: parseInt(row['Điểm OKR']) || 0,
@@ -1362,10 +1362,10 @@ app.get("/api/cfrs/statistics", (req, res) => {
       total_points: parseInt(row['Tổng điểm']) || 0
     }));
 
-    console.log("Returning data:", cfrTable.length, "rows");
+    console.log("Returning data:", pointsTable.length, "rows");
 
     res.json({
-      cfrTable: cfrTable,
+      pointsTable: pointsTable,
       dateRange: { start: startDate, end: endDate }
     });
   });
